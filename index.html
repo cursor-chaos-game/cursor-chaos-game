@@ -495,11 +495,11 @@
 
     <script>
         // BÖLÜM A: GÜVENLİK VE AYARLAR
-        // Kendi GitHub Pages adresinizle DEĞİŞTİRİN: [KullanıcıAdınız].github.io
+        // KENDİ ALAN ADINIZ BURAYA GİRİLMİŞTİR!
         const ALLOWED_DOMAIN = "cursor-chaos-game.github.io"; 
         const DOMAIN_KEY = "ImlecChaosKey"; // Güvenlik Anahtarı
         
-        // KORUMA KATMANI: ALAN ADI KISITLAMASI (GÜNCELLE)
+        // KORUMA KATMANI: ALAN ADI KISITLAMASI
         if (!window.location.hostname.includes(ALLOWED_DOMAIN) && window.location.hostname !== "localhost") {
             document.body.innerHTML = '<h1>Erişim Kısıtlı</h1><p>Bu oyunun ticari veya gayri ticari amaçla izinsiz kopyalanması yasaktır. Lütfen orijinal adresten oynayın.</p>';
             document.body.style.background = '#111';
@@ -528,6 +528,17 @@
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        
+        // Çözünürlük değiştiğinde tuval boyutunu ayarla
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Oyuncu konumunu ortada tutmaya çalış
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.targetX = player.x;
+            player.targetY = player.y;
+        });
 
         // Oyun Durumu
         let gameState = 'menu'; // menu, playing, paused, gameover
@@ -611,7 +622,8 @@
             color: '#4ecdc4',
             baseSpeed: 6,
             targetX: 0,
-            targetY: 0
+            targetY: 0,
+            invincible: 0 // Görünmezlik süresi (frame)
         };
 
         // Varlıklar
@@ -623,7 +635,6 @@
         
         // Dalga Yöneticisi
         const WAVE_MANAGER = {
-            // Dalga 5, 10, 15... gibi özel dalgalar için mini boss eklenecek
             getEnemyCount: (w) => 2 + Math.floor(w / 2) + Math.min(w, 10),
             getStarCount: (w) => 3 + Math.floor(w / 3),
             getEnemySpeedMultiplier: (w) => 1 + (w * 0.05), // Her dalgada %5 hız artışı
@@ -631,7 +642,7 @@
             getBossHealth: (w) => 10 + (w * 5)
         };
 
-        // Klavye ve Dokunmatik Kontroller (Önceki koddan)
+        // Klavye ve Dokunmatik Kontroller
         const keys = {};
         document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
         document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
@@ -643,13 +654,41 @@
         canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
         canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
         canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+        canvas.addEventListener('mousedown', handleMouseDown, { passive: false });
+        canvas.addEventListener('mousemove', handleMouseMove, { passive: false });
+        canvas.addEventListener('mouseup', handleMouseUp, { passive: false });
 
+        // Mouse Kontrolleri
+        function handleMouseDown(e) {
+             if (gameState !== 'playing') return;
+             // Mouse'un ilk tıklandığı yeri hedef olarak ayarla
+             player.targetX = e.clientX;
+             player.targetY = e.clientY;
+             isTouching = true; // Mouse'u basılı tutmayı taklit et
+        }
+        function handleMouseMove(e) {
+             if (gameState !== 'playing' || !isTouching) return;
+             // Mouse hareket ederken hedefi güncelle
+             player.targetX = e.clientX;
+             player.targetY = e.clientY;
+        }
+        function handleMouseUp(e) {
+             if (gameState !== 'playing') return;
+             isTouching = false;
+        }
+
+
+        // Dokunmatik Kontroller
         function handleTouchStart(e) {
             if (gameState !== 'playing') return;
             e.preventDefault();
             const touch = e.touches[0];
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
+            
+            // Dokunmatiğin ilk yerini hedef olarak ayarla
+            player.targetX = touch.clientX;
+            player.targetY = touch.clientY;
             isTouching = true;
         }
 
@@ -657,15 +696,10 @@
             if (gameState !== 'playing' || !isTouching) return;
             e.preventDefault();
             const touch = e.touches[0];
-            const deltaX = touch.clientX - touchStartX;
-            const deltaY = touch.clientY - touchStartY;
             
-            // Hassasiyet ayarı
-            player.targetX += deltaX * 0.5;
-            player.targetY += deltaY * 0.5;
-            
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
+            // Dokunmatik girişteki hedefi güncelle
+            player.targetX = touch.clientX;
+            player.targetY = touch.clientY;
         }
 
         function handleTouchEnd(e) {
@@ -709,7 +743,7 @@
             document.getElementById('mainMenuCrystals').textContent = crystals;
             document.getElementById('highestWave').textContent = highestWave;
             document.getElementById('totalCrystals').textContent = totalCrystalsEarned;
-            document.getElementById('totalPlayTime').textContent = totalPlayTime;
+            document.getElementById('totalPlayTime').textContent = totalPlayTime.toFixed(0);
         }
 
         function switchShopTab(tab) {
@@ -905,6 +939,7 @@
             crystalDrops = [];
             particles = [];
             activeBoosts = [];
+            player.invincible = 0; // Görünmezlik süresini sıfırla
             lastUpdateTime = performance.now(); // Oyun başlangıç zamanı
             
             // Satın alınan boost'ları uygula
@@ -915,11 +950,11 @@
             playerSpeedMultiplier = BOOSTS.speedBoost.purchased ? 1.2 : 1;
             if (BOOSTS.speedBoost.purchased) activeBoosts.push({ name: 'Hız', icon: '⚡' });
             
-            
+            // OYUNCU KONUMUNU VE HEDEFİNİ SIFIRLAMA (ÖNEMLİ HATA GİDERME)
             player.x = canvas.width / 2;
             player.y = canvas.height / 2;
-            player.targetX = player.x;
-            player.targetY = player.y;
+            player.targetX = player.x; 
+            player.targetY = player.y; 
 
             document.getElementById('startScreen').style.display = 'none';
             document.getElementById('ui').style.display = 'block';
@@ -1097,6 +1132,8 @@
         }
 
         function playerHit(enemy) {
+            if (player.invincible > 0) return; // Görünmezken vurulmayı engelle
+
             if (hasShield) {
                 hasShield = false;
                 activeBoosts = activeBoosts.filter(b => b.icon !== '🛡️');
@@ -1131,6 +1168,7 @@
             setSafe('crystals', crystals);
             setSafe('totalCrystals', totalCrystalsEarned);
             setSafe('highestWave', highestWave);
+            setSafe('totalPlayTime', totalPlayTime.toFixed(0));
 
             document.getElementById('ui').style.display = 'none';
             document.getElementById('waveIndicator').style.display = 'none';
@@ -1227,15 +1265,14 @@
             const deltaTime = currentTime - lastUpdateTime;
             lastUpdateTime = currentTime;
             
-            // Eğer delta süresi çok büyükse (sekme değiştirme vb.) veya çok küçükse (hız hilesi), düzelt
             const expectedDelta = 1000 / 60;
             let timeStep = 1;
-            if (deltaTime > 200) { // Sekme değişimi gibi durumlarda
-                 timeStep = 0; // Zamanı dondur
+            if (deltaTime > 200) { 
+                 timeStep = 0; // Sekme değişiminde zamanı dondur
             } else if (deltaTime < 5) {
                  timeStep = 0; // Hız hilesini engelle
             } else {
-                 timeStep = deltaTime / expectedDelta; // Normalleştir
+                 timeStep = deltaTime / expectedDelta; 
             }
             
             // UI Güncelleme (Her karede)
@@ -1250,12 +1287,18 @@
 
             // Oyuncu hareketi
             const currentSpeed = player.baseSpeed * playerSpeedMultiplier * timeStep;
+            
+            // Hedefe yumuşak hareket
+            const dx = player.targetX - player.x;
+            const dy = player.targetY - player.y;
+            
+            // Oyuncu konumu güncellemesi (Yumuşak hareket)
+            player.x += dx * 0.15 * timeStep;
+            player.y += dy * 0.15 * timeStep;
 
-            player.targetX = Math.max(player.radius, Math.min(canvas.width - player.radius, player.targetX));
-            player.targetY = Math.max(player.radius, Math.min(canvas.height - player.radius, player.targetY));
-
-            player.x += (player.targetX - player.x) * 0.15 * timeStep;
-            player.y += (player.targetY - player.y) * 0.15 * timeStep;
+            // Oyuncu sınırları
+            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
             
             if (player.invincible > 0) player.invincible -= timeStep;
             
@@ -1296,7 +1339,7 @@
                 enemy.x += Math.cos(angle) * enemyMoveSpeed;
                 enemy.y += Math.sin(angle) * enemyMoveSpeed;
 
-                // Düşman çizim mantığı (Önceki koddan)
+                // Düşman çizim mantığı
                 ctx.save();
                 ctx.translate(enemy.x, enemy.y);
                 
@@ -1499,6 +1542,7 @@
         }
 
         function backToMenu() {
+            gameState = 'menu';
             document.getElementById('gameOverScreen').style.display = 'none';
             document.getElementById('ui').style.display = 'none';
             document.getElementById('waveIndicator').style.display = 'none';
@@ -1514,4 +1558,3 @@
     </script>
 </body>
 </html>
-
