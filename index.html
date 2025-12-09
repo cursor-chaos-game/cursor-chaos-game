@@ -511,8 +511,6 @@
     <script>
         // BÖLÜM A: GÜVENLİK VE AYARLAR
         // KULLANICI İSTEĞİ ÜZERİNE GÜVENLİK KODU TAMAMEN KALDIRILMIŞTIR!
-        // const ALLOWED_DOMAIN = "cursor-chaos-game.github.io"; 
-        // const DOMAIN_KEY = "ImlecChaosKey"; // Güvenlik Anahtarı
         
         // KORUMA KATMANI: KONSOL DENETİMİ (HİLE ENGELLEME)
         (function() {
@@ -658,7 +656,7 @@
 
         let touchStartX = 0;
         let touchStartY = 0;
-        let isTouching = false;
+        let isTouching = false; // Mouse basılı/Parmak ekranda mı?
 
         canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
         canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -674,14 +672,19 @@
              player.targetY = e.clientY;
              isTouching = true; 
         }
+
+        // KRİTİK DÜZELTME 1: isTouching kontrolünü kaldır, sadece oyun oynanıyor mu diye bak.
+        // Fare hareket ettiğinde hedefi her zaman güncelle, böylece oyuncu imleci takip eder.
         function handleMouseMove(e) {
-             if (gameState !== 'playing' || !isTouching) return;
+             if (gameState !== 'playing') return;
              player.targetX = e.clientX;
              player.targetY = e.clientY;
         }
+
         function handleMouseUp(e) {
              if (gameState !== 'playing') return;
-             isTouching = false;
+             // isTouching = false; // Mouse Up'ta isTouching'i sıfırlamak yerine, 
+             // hareketin sürekli takip edilmesini sağlamak için burada bir şey yapmaya gerek yok.
         }
 
 
@@ -698,8 +701,11 @@
             isTouching = true;
         }
 
+        // KRİTİK DÜZELTME 2: isTouching kontrolünü kaldır.
+        // Dokunmatik harekette (move) isTouching zaten true olmalıdır, ancak 
+        // buradaki kontrolü kaldırarak daha güvenilir hedef takibi sağlarız.
         function handleTouchMove(e) {
-            if (gameState !== 'playing' || !isTouching) return;
+            if (gameState !== 'playing') return;
             e.preventDefault();
             const touch = e.touches[0];
             
@@ -710,7 +716,10 @@
         function handleTouchEnd(e) {
             if (gameState !== 'playing') return;
             e.preventDefault();
-            isTouching = false;
+            // isTouching = false; // Dokunma bittiğinde isTouching'i sıfırlamak,
+            // sadece basılı tutarak hareket etme mantığı için gerekli. 
+            // Eğer sürekli takip isteniyorsa, bu satır kalmalı.
+            isTouching = false; 
         }
 
         // BÖLÜM C: UI VE MAĞAZA İŞLEMLERİ
@@ -999,7 +1008,9 @@
 
             updateGameUI();
             spawnWave();
-            gameLoop();
+            
+            // Oyun döngüsünü yeniden başlat (Geri sayım bittiği için artık güvenli)
+            gameLoop(performance.now());
         }
 
         function spawnWave() {
@@ -1325,6 +1336,12 @@
             const dx = player.targetX - player.x;
             const dy = player.targetY - player.y;
             
+            // Eğer fare basılı değilse (isTouching = false), oyuncu mevcut yerinde kalmaya çalışır, 
+            // ancak eğer sürekli takip (MouseMove/TouchMove) etkinse, hareket devam eder.
+            // Mouse/TouchMove fonksiyonları isTouching kontrolünü kaldırdığımız için,
+            // player.targetX/Y sürekli güncellenir ve oyuncu imleci sürekli takip eder.
+            
+            // Mouse/Dokunmatik basılı olmasa bile takip etme mantığı için bu değerleri kullan:
             player.x += dx * 0.15 * timeStep;
             player.y += dy * 0.15 * timeStep;
 
@@ -1516,7 +1533,7 @@
             document.getElementById('gameOverScreen').style.display = 'none';
             lastUpdateTime = performance.now(); 
             if (bgMusic && isAudioOn) bgMusic.play();
-            gameLoop();
+            gameLoop(performance.now());
         }
 
         function restartFromPause() {
