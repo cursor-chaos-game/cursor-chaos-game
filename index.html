@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Cursor Chaos - DİNAMİK ZORLUK SÜRÜMÜ</title>
+    <title>Cursor Chaos - SADE VE HATASIZ SÜRÜM</title>
     <style>
         /* CSS Stilleri önceki versiyonla aynı kalmıştır */
         * {
@@ -16,7 +16,7 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764baiz 100%);
             touch-action: none;
             display: flex;
             justify-content: center;
@@ -275,24 +275,6 @@
             gap: 15px;
         }
         
-        #audioToggle {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            width: 40px;
-            height: 40px;
-            min-width: unset;
-            padding: 0;
-            border-radius: 50%;
-            font-size: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            box-shadow: none;
-            z-index: 201;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
         #countdownDisplay {
             position: fixed;
             top: 50%;
@@ -313,12 +295,7 @@
     </style>
 </head>
 <body>
-    <audio id="bgMusic" loop>
-        </audio>
-
-    <button id="audioToggle" onclick="toggleAudio()">🔊</button>
-
-
+    
     <div id="startScreen" class="screen">
         <h1>🎮 CURSOR CHAOS 🎮</h1>
         
@@ -510,7 +487,6 @@
 
     <script>
         // BÖLÜM A: GÜVENLİK VE AYARLAR
-        // KULLANICI İSTEĞİ ÜZERİNE GÜVENLİK KODU TAMAMEN KALDIRILMIŞTIR!
         
         // KORUMA KATMANI: KONSOL DENETİMİ (HİLE ENGELLEME)
         (function() {
@@ -533,10 +509,17 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         
+        // Canvas'ın sayfa üzerindeki konumunu al (Koordinat düzeltmesi için KRİTİK)
+        const canvasRect = canvas.getBoundingClientRect();
+        
         // Çözünürlük değiştiğinde tuval boyutunu ayarla
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            
+            // Canvas konumunu tekrar al
+            Object.assign(canvasRect, canvas.getBoundingClientRect());
+
             // Oyuncu konumunu ortada tutmaya çalış
             player.x = canvas.width / 2;
             player.y = canvas.height / 2;
@@ -551,7 +534,7 @@
         // BÖLÜM B: DEĞİŞKENLER VE GÜVENLİ DEPOLAMA
         
         // Güvenli depolama (Basitleştirilmiş hali)
-        const DOMAIN_KEY = "ImlecChaosKey"; // Yine de karıştırma anahtarı kalsın
+        const DOMAIN_KEY = "ImlecChaosKey"; // Karıştırma anahtarı
         
         function getSafe(key, defaultValue) {
             const val = localStorage.getItem(key + DOMAIN_KEY);
@@ -588,15 +571,6 @@
         let totalPlayTime = getSafe('totalPlayTime', 0);
         let currentSkin = getSafe('currentSkin', 'default');
         
-        // Ses Durumu
-        let isAudioOn = getSafe('isAudioOn', true);
-        const bgMusic = document.getElementById('bgMusic');
-        if (bgMusic) {
-             bgMusic.volume = 0.4;
-             if (!isAudioOn) bgMusic.muted = true;
-        }
-
-
         // Satın alınan güçlendirmeler
         const BOOSTS = {
              startShield: { cost: 500, purchased: getSafe('startShield', false) },
@@ -654,8 +628,6 @@
         document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
         document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
 
-        let touchStartX = 0;
-        let touchStartY = 0;
         let isTouching = false; // Mouse basılı/Parmak ekranda mı?
 
         canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -668,23 +640,22 @@
         // Mouse Kontrolleri
         function handleMouseDown(e) {
              if (gameState !== 'playing') return;
-             player.targetX = e.clientX;
-             player.targetY = e.clientY;
+             // Koordinatları canvas'a göre ayarla
+             player.targetX = e.clientX - canvasRect.left;
+             player.targetY = e.clientY - canvasRect.top;
              isTouching = true; 
         }
 
-        // KRİTİK DÜZELTME 1: isTouching kontrolünü kaldır, sadece oyun oynanıyor mu diye bak.
-        // Fare hareket ettiğinde hedefi her zaman güncelle, böylece oyuncu imleci takip eder.
+        // DÜZELTME: Koordinatları canvas'a göre ayarla
         function handleMouseMove(e) {
              if (gameState !== 'playing') return;
-             player.targetX = e.clientX;
-             player.targetY = e.clientY;
+             player.targetX = e.clientX - canvasRect.left;
+             player.targetY = e.clientY - canvasRect.top;
         }
 
         function handleMouseUp(e) {
              if (gameState !== 'playing') return;
-             // isTouching = false; // Mouse Up'ta isTouching'i sıfırlamak yerine, 
-             // hareketin sürekli takip edilmesini sağlamak için burada bir şey yapmaya gerek yok.
+             isTouching = false; 
         }
 
 
@@ -693,61 +664,34 @@
             if (gameState !== 'playing') return;
             e.preventDefault();
             const touch = e.touches[0];
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
             
-            player.targetX = touch.clientX;
-            player.targetY = touch.clientY;
+            // Koordinatları canvas'a göre ayarla
+            player.targetX = touch.clientX - canvasRect.left; 
+            player.targetY = touch.clientY - canvasRect.top; 
             isTouching = true;
         }
 
-        // KRİTİK DÜZELTME 2: isTouching kontrolünü kaldır.
-        // Dokunmatik harekette (move) isTouching zaten true olmalıdır, ancak 
-        // buradaki kontrolü kaldırarak daha güvenilir hedef takibi sağlarız.
+        // DÜZELTME: Koordinatları canvas'a göre ayarla
         function handleTouchMove(e) {
             if (gameState !== 'playing') return;
             e.preventDefault();
             const touch = e.touches[0];
             
-            player.targetX = touch.clientX;
-            player.targetY = touch.clientY;
+            player.targetX = touch.clientX - canvasRect.left; 
+            player.targetY = touch.clientY - canvasRect.top; 
         }
 
         function handleTouchEnd(e) {
             if (gameState !== 'playing') return;
             e.preventDefault();
-            // isTouching = false; // Dokunma bittiğinde isTouching'i sıfırlamak,
-            // sadece basılı tutarak hareket etme mantığı için gerekli. 
-            // Eğer sürekli takip isteniyorsa, bu satır kalmalı.
             isTouching = false; 
         }
 
         // BÖLÜM C: UI VE MAĞAZA İŞLEMLERİ
 
-        function toggleAudio() {
-            isAudioOn = !isAudioOn;
-            setSafe('isAudioOn', isAudioOn);
-            
-            if (bgMusic) {
-                bgMusic.muted = !isAudioOn;
-                if (isAudioOn && gameState === 'menu') {
-                    bgMusic.play().catch(e => {}); 
-                }
-            }
-            document.getElementById('audioToggle').textContent = isAudioOn ? '🔊' : '🔇';
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-             toggleAudio(); 
              updateMainMenuUI();
              updateShopUI();
-             document.getElementById('audioToggle').textContent = isAudioOn ? '🔊' : '🔇';
-             
-             document.body.addEventListener('click', () => {
-                 if (bgMusic && isAudioOn && bgMusic.paused) {
-                      bgMusic.play().catch(e => {});
-                 }
-             }, { once: true });
         });
         
         function updateMainMenuUI() {
@@ -990,6 +934,7 @@
             // Satın alınan boost'ları uygula
             health = 3 + (BOOSTS.extraLife.purchased ? 1 : 0);
             hasShield = BOOSTS.startShield.purchased;
+            activeBoosts = []; // Aktif boostları sıfırla
             if (hasShield) activeBoosts.push({ name: 'Kalkan', icon: '🛡️' });
             
             playerSpeedMultiplier = BOOSTS.speedBoost.purchased ? 1.2 : 1;
@@ -1216,8 +1161,6 @@
             document.getElementById('earnedCrystals').textContent = gameCrystals;
             document.getElementById('bestWave').textContent = highestWave;
             document.getElementById('reviveOffer').style.display = 'block'; 
-            
-            if (bgMusic) bgMusic.pause();
         }
 
 
@@ -1336,12 +1279,10 @@
             const dx = player.targetX - player.x;
             const dy = player.targetY - player.y;
             
-            // Eğer fare basılı değilse (isTouching = false), oyuncu mevcut yerinde kalmaya çalışır, 
-            // ancak eğer sürekli takip (MouseMove/TouchMove) etkinse, hareket devam eder.
-            // Mouse/TouchMove fonksiyonları isTouching kontrolünü kaldırdığımız için,
-            // player.targetX/Y sürekli güncellenir ve oyuncu imleci sürekli takip eder.
+            // Eğer isTouching true ise (mouse basılı/parmak ekranda), oyuncu hedefi hızlıca takip eder.
+            // isTouching false olsa bile, mouse/parmak hareketleri targetX/Y'yi güncellediği için,
+            // oyuncu imleci takip etmeye devam eder. Bu, masaüstü/mobil için idealdir.
             
-            // Mouse/Dokunmatik basılı olmasa bile takip etme mantığı için bu değerleri kullan:
             player.x += dx * 0.15 * timeStep;
             player.y += dy * 0.15 * timeStep;
 
@@ -1523,7 +1464,6 @@
             document.getElementById('pauseWave').textContent = wave;
             document.getElementById('pauseScore').textContent = score;
             document.getElementById('pauseCrystals').textContent = gameCrystals;
-            if (bgMusic) bgMusic.pause();
         }
 
         function resumeGame() {
@@ -1532,7 +1472,6 @@
             document.getElementById('pauseScreen').style.display = 'none';
             document.getElementById('gameOverScreen').style.display = 'none';
             lastUpdateTime = performance.now(); 
-            if (bgMusic && isAudioOn) bgMusic.play();
             gameLoop(performance.now());
         }
 
@@ -1564,7 +1503,6 @@
             document.getElementById('pauseBtn').style.display = 'none';
             document.getElementById('startScreen').style.display = 'flex';
             updateMainMenuUI();
-            if (bgMusic && isAudioOn) bgMusic.play();
         }
 
         // İlk yüklemede ana menüyü ayarla
