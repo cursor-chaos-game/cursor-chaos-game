@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Cursor Chaos - FINAL ULTIMATE EDITION</title>
+    <title>Cursor Chaos - DİNAMİK ZORLUK SÜRÜMÜ</title>
     <style>
+        /* CSS Stilleri önceki versiyonla aynı kalmıştır */
         * {
             margin: 0;
             padding: 0;
@@ -292,6 +293,18 @@
             align-items: center;
         }
 
+        #countdownDisplay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20vh;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            z-index: 300;
+            font-weight: bold;
+        }
+
         @media (max-width: 768px) {
             .shop-item {
                 width: 90%;
@@ -314,7 +327,7 @@
         </div>
 
         <div class="button-row">
-            <button onclick="startGame()">🎮 OYNA</button>
+            <button onclick="prepareGame()">🎮 OYNA</button>
             <button class="secondary" onclick="openShop('boosts')">🛒 MAĞAZA</button>
         </div>
 
@@ -475,6 +488,8 @@
             <div style="font-size: 16px; color: #aaa;">Reklam yükleniyor...</div>
         </div>
     </div>
+    
+    <div id="countdownDisplay" style="display: none;">3</div>
 
     <div id="ui" style="display: none;">
         <div>💯 <span id="score">0</span></div>
@@ -495,18 +510,9 @@
 
     <script>
         // BÖLÜM A: GÜVENLİK VE AYARLAR
-        // KENDİ ALAN ADINIZ BURAYA GİRİLMİŞTİR!
-        const ALLOWED_DOMAIN = "cursor-chaos-game.github.io"; 
-        const DOMAIN_KEY = "ImlecChaosKey"; // Güvenlik Anahtarı
-        
-        // KORUMA KATMANI: ALAN ADI KISITLAMASI
-        if (!window.location.hostname.includes(ALLOWED_DOMAIN) && window.location.hostname !== "localhost") {
-            document.body.innerHTML = '<h1>Erişim Kısıtlı</h1><p>Bu oyunun ticari veya gayri ticari amaçla izinsiz kopyalanması yasaktır. Lütfen orijinal adresten oynayın.</p>';
-            document.body.style.background = '#111';
-            document.body.style.display = 'flex';
-            document.body.style.color = 'red';
-            throw new Error("Domain Kısıtlaması İhlali");
-        }
+        // KULLANICI İSTEĞİ ÜZERİNE GÜVENLİK KODU TAMAMEN KALDIRILMIŞTIR!
+        // const ALLOWED_DOMAIN = "cursor-chaos-game.github.io"; 
+        // const DOMAIN_KEY = "ImlecChaosKey"; // Güvenlik Anahtarı
         
         // KORUMA KATMANI: KONSOL DENETİMİ (HİLE ENGELLEME)
         (function() {
@@ -541,12 +547,14 @@
         });
 
         // Oyun Durumu
-        let gameState = 'menu'; // menu, playing, paused, gameover
+        let gameState = 'menu'; // menu, playing, paused, gameover, countdown
         let gameRunning = false;
         
         // BÖLÜM B: DEĞİŞKENLER VE GÜVENLİ DEPOLAMA
         
-        // Güvenli depolama (Değişken Karıştırma)
+        // Güvenli depolama (Basitleştirilmiş hali)
+        const DOMAIN_KEY = "ImlecChaosKey"; // Yine de karıştırma anahtarı kalsın
+        
         function getSafe(key, defaultValue) {
             const val = localStorage.getItem(key + DOMAIN_KEY);
             if (!val) return defaultValue;
@@ -555,7 +563,6 @@
                 const decoded = val.split('').map((char, i) => String.fromCharCode(char.charCodeAt(0) ^ (DOMAIN_KEY.charCodeAt(i % DOMAIN_KEY.length)))).join('');
                 return JSON.parse(decoded);
             } catch (e) {
-                console.error("Depolama verisi bozuk.", e);
                 return defaultValue;
             }
         }
@@ -565,7 +572,7 @@
                 const encoded = JSON.stringify(value).split('').map((char, i) => String.fromCharCode(char.charCodeAt(0) ^ (DOMAIN_KEY.charCodeAt(i % DOMAIN_KEY.length)))).join('');
                 localStorage.setItem(key + DOMAIN_KEY, encoded);
             } catch (e) {
-                console.error("Depolamaya yazılırken hata.", e);
+                // Hata durumunda bile oyuna devam et
             }
         }
 
@@ -637,10 +644,12 @@
         const WAVE_MANAGER = {
             getEnemyCount: (w) => 2 + Math.floor(w / 2) + Math.min(w, 10),
             getStarCount: (w) => 3 + Math.floor(w / 3),
-            getEnemySpeedMultiplier: (w) => 1 + (w * 0.05), // Her dalgada %5 hız artışı
+            // DİNAMİK ZORLUK: Her dalgada %8 hız artışı
+            getEnemySpeedMultiplier: (w) => 1 + (w * 0.08), 
             isBossWave: (w) => w % 5 === 0,
             getBossHealth: (w) => 10 + (w * 5)
         };
+        let countdownValue = 0; // Geri sayım için yeni değişken
 
         // Klavye ve Dokunmatik Kontroller
         const keys = {};
@@ -661,14 +670,12 @@
         // Mouse Kontrolleri
         function handleMouseDown(e) {
              if (gameState !== 'playing') return;
-             // Mouse'un ilk tıklandığı yeri hedef olarak ayarla
              player.targetX = e.clientX;
              player.targetY = e.clientY;
-             isTouching = true; // Mouse'u basılı tutmayı taklit et
+             isTouching = true; 
         }
         function handleMouseMove(e) {
              if (gameState !== 'playing' || !isTouching) return;
-             // Mouse hareket ederken hedefi güncelle
              player.targetX = e.clientX;
              player.targetY = e.clientY;
         }
@@ -686,7 +693,6 @@
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
             
-            // Dokunmatiğin ilk yerini hedef olarak ayarla
             player.targetX = touch.clientX;
             player.targetY = touch.clientY;
             isTouching = true;
@@ -697,7 +703,6 @@
             e.preventDefault();
             const touch = e.touches[0];
             
-            // Dokunmatik girişteki hedefi güncelle
             player.targetX = touch.clientX;
             player.targetY = touch.clientY;
         }
@@ -717,24 +722,21 @@
             if (bgMusic) {
                 bgMusic.muted = !isAudioOn;
                 if (isAudioOn && gameState === 'menu') {
-                    // Kullanıcı interaksiyonu gerekliliği
-                    bgMusic.play().catch(e => console.log("Müzik otomatik başlatılamadı.")); 
+                    bgMusic.play().catch(e => {}); 
                 }
             }
             document.getElementById('audioToggle').textContent = isAudioOn ? '🔊' : '🔇';
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-             toggleAudio(); // UI'ı ilk açılışta ayarla
+             toggleAudio(); 
              updateMainMenuUI();
              updateShopUI();
-             // Müzik kontrolünü bir kez daha ayarla
              document.getElementById('audioToggle').textContent = isAudioOn ? '🔊' : '🔇';
              
-             // Kullanıcı etkileşiminden sonra müziği başlat
              document.body.addEventListener('click', () => {
                  if (bgMusic && isAudioOn && bgMusic.paused) {
-                      bgMusic.play().catch(e => console.log("Müzik otomatik başlatılamadı."));
+                      bgMusic.play().catch(e => {});
                  }
              }, { once: true });
         });
@@ -790,7 +792,6 @@
         
         function buySkin(skinType, cost) {
             if (SKINS[skinType].purchased) {
-                 // Sadece donat
                  equipSkin(skinType);
                  return;
             }
@@ -818,7 +819,6 @@
         function updateShopUI() {
             document.getElementById('shopCrystals').textContent = crystals;
             
-            // Güçlendirmeleri güncelle
             for (const key in BOOSTS) {
                 const itemDiv = document.getElementById('item-' + key);
                 if (!itemDiv) continue;
@@ -829,7 +829,6 @@
                 }
             }
             
-            // Kozmetikleri güncelle
             for (const key in SKINS) {
                 const skinDiv = document.getElementById('skin-' + key);
                 if (!skinDiv) continue;
@@ -867,7 +866,6 @@
             
             document.getElementById('shieldIndicator').style.display = hasShield ? 'block' : 'none';
             
-            // Aktif boost'ları göster
             if (activeBoosts.length > 0) {
                 document.getElementById('activeBoosts').style.display = 'flex';
                 document.getElementById('activeBoosts').innerHTML = activeBoosts.map(b => b.icon + ' ' + b.name).join(' | ');
@@ -881,7 +879,6 @@
 
         function watchAd(type) {
             adCallback = type;
-            // Tüm ekranları gizle
             document.getElementById('gameOverScreen').style.display = 'none';
             document.getElementById('shopScreen').style.display = 'none';
             document.getElementById('adScreen').style.display = 'flex';
@@ -904,14 +901,12 @@
             document.getElementById('adScreen').style.display = 'none';
             
             if (adCallback === 'revive') {
-                // Diriltme
-                health = 2 + (BOOSTS.extraLife.purchased ? 1 : 0); // Canı yenile
+                health = 2 + (BOOSTS.extraLife.purchased ? 1 : 0); 
                 hasShield = true;
                 updateGameUI();
                 document.getElementById('reviveOffer').style.display = 'none';
                 resumeGame();
             } else if (adCallback === 'crystals') {
-                // Ücretsiz kristal
                 const reward = 50;
                 crystals += reward;
                 totalCrystalsEarned += reward;
@@ -924,23 +919,64 @@
             
             adCallback = null;
         }
+        
+        // **YENİ ÖZELLİK:** OYUN BAŞLATMA VE GERİ SAYIM
+        function prepareGame() {
+            // UI gizleme
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            document.getElementById('waveIndicator').style.display = 'block';
+            document.getElementById('pauseBtn').style.display = 'flex';
+            document.getElementById('countdownDisplay').style.display = 'block';
+            
+            // Başlangıç değerlerini ayarla (startGame öncesi hazırlık)
+            gameState = 'countdown';
+            gameRunning = false; // Oyun döngüsü başlamayacak
+            countdownValue = 3;
+            document.getElementById('countdownDisplay').textContent = countdownValue;
+            
+            // Tüm oyun objelerini temizle
+            enemies = [];
+            stars = [];
+            powerups = [];
+            crystalDrops = [];
+            particles = [];
+            
+            // Oyuncu konumunu ayarla
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            player.targetX = player.x; 
+            player.targetY = player.y;
+            
+            // Canvasta ilk kareyi temizle ve geri sayım döngüsünü başlat
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            updateGameUI();
+            drawPlayer(player); // Player'ı ortada göster
 
-        // BÖLÜM D: OYUN MANTIK FONKSİYONLARI
-
+            const countdownInterval = setInterval(() => {
+                countdownValue--;
+                
+                if (countdownValue > 0) {
+                    document.getElementById('countdownDisplay').textContent = countdownValue;
+                } else if (countdownValue === 0) {
+                    document.getElementById('countdownDisplay').textContent = 'GO!';
+                } else {
+                    clearInterval(countdownInterval);
+                    document.getElementById('countdownDisplay').style.display = 'none';
+                    startGame(); // Geri sayım bitince oyunu başlat
+                }
+            }, 1000);
+        }
+        
         function startGame() {
             gameState = 'playing';
             gameRunning = true;
             score = 0;
             wave = 1;
             gameCrystals = 0;
-            enemies = [];
-            stars = [];
-            powerups = [];
-            crystalDrops = [];
-            particles = [];
-            activeBoosts = [];
-            player.invincible = 0; // Görünmezlik süresini sıfırla
-            lastUpdateTime = performance.now(); // Oyun başlangıç zamanı
+            player.invincible = 0; 
+            lastUpdateTime = performance.now(); 
             
             // Satın alınan boost'ları uygula
             health = 3 + (BOOSTS.extraLife.purchased ? 1 : 0);
@@ -950,7 +986,7 @@
             playerSpeedMultiplier = BOOSTS.speedBoost.purchased ? 1.2 : 1;
             if (BOOSTS.speedBoost.purchased) activeBoosts.push({ name: 'Hız', icon: '⚡' });
             
-            // OYUNCU KONUMUNU VE HEDEFİNİ SIFIRLAMA (ÖNEMLİ HATA GİDERME)
+            // OYUNCU KONUMUNU VE HEDEFİNİ SIFIRLAMA
             player.x = canvas.width / 2;
             player.y = canvas.height / 2;
             player.targetX = player.x; 
@@ -970,47 +1006,38 @@
             stars = [];
             powerups = [];
             
-            // Yıldızlar
             const starCount = WAVE_MANAGER.getStarCount(wave);
             for (let i = 0; i < starCount; i++) {
                 stars.push(createStar());
             }
 
-            // Düşmanlar
             enemies = [];
             const enemyCount = WAVE_MANAGER.getEnemyCount(wave);
             const isBossWave = WAVE_MANAGER.isBossWave(wave);
             
             if (isBossWave) {
-                 // Boss dalgası
                  enemies.push(createEnemy('boss'));
             } else {
-                 // Normal dalga
                  for (let i = 0; i < enemyCount; i++) {
                     enemies.push(createEnemy());
                  }
             }
 
-            // Power-up'lar (Şans bazlı)
-            if (Math.random() > 0.6) powerups.push(createPowerup('shield')); // %40 şans
-            if (Math.random() > 0.7 && health < 4) powerups.push(createPowerup('health')); // %30 şans, can azsa daha yüksek şans
+            if (Math.random() > 0.6) powerups.push(createPowerup('shield')); 
+            if (Math.random() > 0.7 && health < 4) powerups.push(createPowerup('health')); 
             
-            // Eğer dalgada yıldız kalmadıysa ve düşmanlar hala varsa, yeni dalgayı başlat.
             if (stars.length === 0 && enemies.length > 0) {
-                 setTimeout(checkWaveCompletion, 5000); // 5 saniye sonra kontrol et
+                 setTimeout(checkWaveCompletion, 5000); 
             }
         }
         
         function checkWaveCompletion() {
              if (stars.length === 0 && enemies.length === 0) {
                  wave++;
-                 // Kristal Ödülü
                  gameCrystals += 5 + wave * 2;
                  updateGameUI();
-                 // Hızlıca bir sonraki dalgayı başlat
                  spawnWave();
              } else if (gameState === 'playing') {
-                 // Eğer hala düşman varsa, 5 saniye sonra tekrar kontrol et (Boss savaşları için)
                  setTimeout(checkWaveCompletion, 5000); 
              }
         }
@@ -1037,6 +1064,7 @@
                  else if (rand < weights[1] + weights[2]) type = 'fast';
             }
 
+            // DİNAMİK ZORLUK burada uygulanır
             const baseSpeed = 2.5 * WAVE_MANAGER.getEnemySpeedMultiplier(wave);
             
             let enemy = {
@@ -1048,7 +1076,7 @@
                 speed: baseSpeed,
                 angry: false,
                 type: type,
-                health: 1 // Sadece tank ve boss için önemli
+                health: 1 
             };
 
             if (type === 'fast') {
@@ -1132,14 +1160,13 @@
         }
 
         function playerHit(enemy) {
-            if (player.invincible > 0) return; // Görünmezken vurulmayı engelle
+            if (player.invincible > 0) return; 
 
             if (hasShield) {
                 hasShield = false;
                 activeBoosts = activeBoosts.filter(b => b.icon !== '🛡️');
                 updateGameUI();
                 createParticles(player.x, player.y, '#64c8ff', 40);
-                // Kalkanı kaybettikten sonra düşmanı yok etme
                 enemy.health = 0; 
                 return;
             }
@@ -1151,7 +1178,6 @@
             if (health <= 0) {
                  gameOver();
             } else {
-                 // Kısa süreli görünmezlik (hit flash)
                  player.invincible = 90; // 1.5 saniye
             }
         }
@@ -1160,7 +1186,6 @@
             gameState = 'gameover';
             gameRunning = false;
             
-            // İstatistikleri güncelle ve kaydet
             totalCrystalsEarned += gameCrystals;
             crystals += gameCrystals;
             if (wave > highestWave) highestWave = wave;
@@ -1175,14 +1200,12 @@
             document.getElementById('pauseBtn').style.display = 'none';
             document.getElementById('gameOverScreen').style.display = 'flex';
             
-            // Skorları göster
             document.getElementById('finalWave').textContent = wave;
             document.getElementById('finalScore').textContent = score;
             document.getElementById('earnedCrystals').textContent = gameCrystals;
             document.getElementById('bestWave').textContent = highestWave;
-            document.getElementById('reviveOffer').style.display = 'block'; // Dirilme teklifini göster
+            document.getElementById('reviveOffer').style.display = 'block'; 
             
-            // Eğer müzik varsa durdur
             if (bgMusic) bgMusic.pause();
         }
 
@@ -1229,9 +1252,9 @@
              const r = p.radius * 1.3;
              ctx.fillStyle = '#2ecc71';
              ctx.beginPath();
-             ctx.moveTo(p.x, p.y - r); // Üst köşe
-             ctx.lineTo(p.x + r * Math.cos(Math.PI / 6), p.y + r * Math.sin(Math.PI / 6)); // Sağ alt
-             ctx.lineTo(p.x + r * Math.cos(5 * Math.PI / 6), p.y + r * Math.sin(5 * Math.PI / 6)); // Sol alt
+             ctx.moveTo(p.x, p.y - r); 
+             ctx.lineTo(p.x + r * Math.cos(Math.PI / 6), p.y + r * Math.sin(Math.PI / 6)); 
+             ctx.lineTo(p.x + r * Math.cos(5 * Math.PI / 6), p.y + r * Math.sin(5 * Math.PI / 6)); 
              ctx.closePath();
              ctx.fill();
              ctx.strokeStyle = '#27ae60';
@@ -1240,18 +1263,34 @@
         }
         
         function drawPlayerRing(p) {
-             // İç daire
              ctx.beginPath();
              ctx.arc(p.x, p.y, p.radius * 0.4, 0, Math.PI * 2);
              ctx.fillStyle = '#4ecdc4';
              ctx.fill();
              
-             // Dış halka
              ctx.beginPath();
              ctx.arc(p.x, p.y, p.radius * 0.8, 0, Math.PI * 2);
              ctx.strokeStyle = '#4ecdc4';
              ctx.lineWidth = p.radius * 0.4;
              ctx.stroke();
+        }
+
+        function drawPlayer(p) {
+             if (SKINS[currentSkin]) {
+                 SKINS[currentSkin].draw(p);
+             } else {
+                 drawPlayerDefault(p);
+             }
+             
+             // Kalkanı çiz
+             if (hasShield) {
+                 ctx.beginPath();
+                 const pulse = Math.sin(performance.now() / 100) * 5 + 25;
+                 ctx.arc(player.x, player.y, player.radius + pulse, 0, Math.PI * 2);
+                 ctx.strokeStyle = 'rgba(78, 205, 196, 0.8)';
+                 ctx.lineWidth = 5;
+                 ctx.stroke();
+             }
         }
         
 
@@ -1261,69 +1300,45 @@
             if (!gameRunning) return;
             requestAnimationFrame(gameLoop);
             
-            // KORUMA: Zaman Bütünlüğü Kontrolü (Hız hilesi engelleme)
             const deltaTime = currentTime - lastUpdateTime;
             lastUpdateTime = currentTime;
             
             const expectedDelta = 1000 / 60;
             let timeStep = 1;
             if (deltaTime > 200) { 
-                 timeStep = 0; // Sekme değişiminde zamanı dondur
+                 timeStep = 0; 
             } else if (deltaTime < 5) {
-                 timeStep = 0; // Hız hilesini engelle
+                 timeStep = 0; 
             } else {
                  timeStep = deltaTime / expectedDelta; 
             }
             
-            // UI Güncelleme (Her karede)
             updateGameUI();
-            
-            // Süre sayacı
             totalPlayTime += (deltaTime / 1000) * timeStep;
             
-            // Arka planı temizle (Kalıcı kuyruk efekti için şeffaf)
             ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Oyuncu hareketi
             const currentSpeed = player.baseSpeed * playerSpeedMultiplier * timeStep;
             
-            // Hedefe yumuşak hareket
             const dx = player.targetX - player.x;
             const dy = player.targetY - player.y;
             
-            // Oyuncu konumu güncellemesi (Yumuşak hareket)
             player.x += dx * 0.15 * timeStep;
             player.y += dy * 0.15 * timeStep;
 
-            // Oyuncu sınırları
             player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
             player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
             
             if (player.invincible > 0) player.invincible -= timeStep;
             
-            // Oyuncuyu çiz
             ctx.save();
             if (player.invincible > 0 && Math.floor(player.invincible / 10) % 2 === 0) {
-                 ctx.globalAlpha = 0.5; // Görünmezlik flaşı
+                 ctx.globalAlpha = 0.5; 
             }
             
-            // Player Skin'i çiz
-            if (SKINS[currentSkin]) {
-                 SKINS[currentSkin].draw(player);
-            } else {
-                 drawPlayerDefault(player);
-            }
-            
-            // Kalkanı çiz
-            if (hasShield) {
-                 ctx.beginPath();
-                 const pulse = Math.sin(currentTime / 100) * 5 + 25;
-                 ctx.arc(player.x, player.y, player.radius + pulse, 0, Math.PI * 2);
-                 ctx.strokeStyle = 'rgba(78, 205, 196, 0.8)';
-                 ctx.lineWidth = 5;
-                 ctx.stroke();
-            }
+            drawPlayer(player);
             ctx.restore();
 
 
@@ -1339,7 +1354,6 @@
                 enemy.x += Math.cos(angle) * enemyMoveSpeed;
                 enemy.y += Math.sin(angle) * enemyMoveSpeed;
 
-                // Düşman çizim mantığı
                 ctx.save();
                 ctx.translate(enemy.x, enemy.y);
                 
@@ -1361,7 +1375,6 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                // Can (Boss ve Tank için)
                 if (enemy.health > 1) {
                      ctx.fillStyle = 'red';
                      ctx.fillRect(-enemy.radius, enemy.radius + 5, enemy.radius * 2, 4);
@@ -1374,43 +1387,36 @@
                 // Çarpışma Kontrolü
                 if (player.invincible <= 0 && checkCollision(player, enemy)) {
                      playerHit(enemy);
-                     // Tank ve Boss hariç düşmanı yok et
                      if (enemy.type !== 'tank' && enemy.type !== 'boss') {
                           enemy.health = 0; 
                      } else {
-                          // Tank ve Boss sadece can kaybeder, yok olmaz
                           enemy.health -= 1;
                      }
                 }
             });
             
-            // Yıldızları güncelle ve çiz (Toplanabilir objeler)
             stars.forEach((star, index) => {
                  if (star.collected) return;
 
-                 // Çizim
                  const pulseRadius = star.radius + Math.sin(star.pulsePhase + currentTime * 0.005) * 2;
                  ctx.beginPath();
                  ctx.arc(star.x, star.y, pulseRadius, 0, Math.PI * 2);
                  ctx.fillStyle = '#ffd700';
                  ctx.fill();
                  
-                 // Çarpışma
                  if (checkCollision(player, star)) {
                       star.collected = true;
                       score += 10;
-                      dropCrystals(star.x, star.y, 5); // Kristal düşür
+                      dropCrystals(star.x, star.y, 5); 
                       createParticles(star.x, star.y, '#ffd700', 10);
-                      checkWaveCompletion(); // Dalga tamamlama kontrolü
+                      checkWaveCompletion(); 
                  }
             });
             stars = stars.filter(s => !s.collected);
 
-            // Power-up'ları güncelle ve çiz
             powerups.forEach((pu, index) => {
                  if (pu.collected) return;
                  
-                 // Çizim
                  ctx.save();
                  ctx.translate(pu.x, pu.y);
                  ctx.rotate(pu.rotation);
@@ -1422,11 +1428,10 @@
                  
                  pu.rotation += 0.01 * timeStep;
                  
-                 // Çarpışma
                  if (checkCollision(player, pu)) {
                       pu.collected = true;
                       createParticles(pu.x, pu.y, pu.color, 20);
-                      activeBoosts = activeBoosts.filter(b => b.icon !== pu.symbol); // Önceki boost'u kaldır
+                      activeBoosts = activeBoosts.filter(b => b.icon !== pu.symbol); 
                       
                       if (pu.type === 'shield') {
                            hasShield = true;
@@ -1440,17 +1445,15 @@
             powerups = powerups.filter(pu => !pu.collected);
 
 
-            // Kristal damlalarını güncelle ve çiz
             crystalDrops.forEach((crystal, index) => {
                 if (crystal.collected) return;
                 
-                // Mıknatıs etkisi
                 if (BOOSTS.magnetBoost.purchased) {
                     const dx = player.x - crystal.x;
                     const dy = player.y - crystal.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    if (distance < 200) { // 200 piksel yakınlıktan çek
+                    if (distance < 200) { 
                         const angle = Math.atan2(dy, dx);
                         const pullSpeed = (200 - distance) / 50 * timeStep;
                         crystal.x += Math.cos(angle) * pullSpeed;
@@ -1458,13 +1461,11 @@
                     }
                 }
 
-                // Çizim
                 ctx.beginPath();
                 ctx.arc(crystal.x, crystal.y, crystal.radius, 0, Math.PI * 2);
                 ctx.fillStyle = '#4ecdc4';
                 ctx.fill();
                 
-                // Çarpışma
                 if (checkCollision(player, crystal)) {
                     crystal.collected = true;
                     gameCrystals += crystal.value;
@@ -1473,7 +1474,6 @@
             });
             crystalDrops = crystalDrops.filter(c => !c.collected);
 
-            // Parçacıkları güncelle
             particles.forEach((p, index) => {
                  p.x += p.vx * timeStep;
                  p.y += p.vy * timeStep;
@@ -1487,19 +1487,17 @@
             });
             particles = particles.filter(p => p.life > 0);
             
-            // Yok edilen düşmanları temizle ve kristal düşür
             enemies.forEach(enemy => {
                  if (enemy.health <= 0) {
                       const dropAmount = (enemy.type === 'boss' ? 50 : (enemy.type === 'tank' ? 10 : 3));
                       dropCrystals(enemy.x, enemy.y, dropAmount);
                       createParticles(enemy.x, enemy.y, enemy.color, 30);
-                      score += dropAmount * 5; // Skor ver
+                      score += dropAmount * 5; 
                  }
             });
             enemies = enemies.filter(e => e.health > 0);
         }
         
-        // Pause menü
         function pauseGame() {
             if (gameState !== 'playing') return;
             gameState = 'paused';
@@ -1516,14 +1514,14 @@
             gameRunning = true;
             document.getElementById('pauseScreen').style.display = 'none';
             document.getElementById('gameOverScreen').style.display = 'none';
-            lastUpdateTime = performance.now(); // Zamanı sıfırla
+            lastUpdateTime = performance.now(); 
             if (bgMusic && isAudioOn) bgMusic.play();
             gameLoop();
         }
 
         function restartFromPause() {
             document.getElementById('pauseScreen').style.display = 'none';
-            restartGame();
+            prepareGame(); // Yeniden başlatma artık geri sayımla başlar
         }
 
         function quitToMenu() {
@@ -1538,7 +1536,7 @@
 
         function restartGame() {
             document.getElementById('gameOverScreen').style.display = 'none';
-            startGame();
+            prepareGame(); // Yeniden başlatma artık geri sayımla başlar
         }
 
         function backToMenu() {
