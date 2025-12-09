@@ -1,852 +1,475 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head> 
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9793811949952831"
-     crossorigin="anonymous"></script>
+<head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cursor Chaos - ULTRA EDITION</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cursor Chaos - ULTRA EDITION | CANVAS MOBİL</title>
+    
     <style>
-        /* --- CSS: Kalite ve Arayüz Stilleri --- */
-        * {
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden; /* Kaydırmayı engeller, mobil için kritik */
+            user-select: none; /* Mobil seçimi engeller */
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        canvas {
+            border: 2px solid #555;
+            background-color: #111;
+            touch-action: none; /* Dokunmatik kaydırmayı engeller */
         }
-
-        #gameCanvas {
-            display: none; 
-            background: rgba(0, 0, 0, 0.3);
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        #uiOverlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        /* Başlangıç, Oyun Bitti, Mağaza ve KRİSTAL MAĞAZASI Ekranları */
-        #startScreen, #gameOverScreen, #shopScreen, #crystalShopScreen, #adOverlay {
-            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: flex;
+            pointer-events: none; /* Canvas üzerindeki UI elemanlarının tıklanmasını sağlar */
+        }
+        .info-box {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        #gameOverScreen, #crystalShopScreen, #adOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            display: none; /* Başlangıçta gizli */
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: white;
-            z-index: 200;
             text-align: center;
+            z-index: 100;
+            pointer-events: all; /* Tıklanabilir olmalı */
         }
-        
-        #adOverlay {
-            z-index: 999;
-            font-size: 36px;
-        }
-
-        #shopScreen, #crystalShopScreen {
-            display: none; 
-            padding: 50px;
-        }
-
-        .shop-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 600px;
-            padding: 15px;
-            margin: 10px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            backdrop-filter: blur(5px);
-        }
-        
-        .item-description {
-            flex-grow: 1;
-            text-align: left;
-        }
-
-        .item-description h3 {
-            color: #ffd700;
-            margin-bottom: 5px;
-        }
-
-        .buy-button {
+        button {
             padding: 10px 20px;
+            margin: 8px;
             font-size: 16px;
-            background-color: #4ecdc4;
-            color: black;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
             border: none;
             border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-left: 20px;
-            font-weight: bold;
+            pointer-events: all;
         }
-
-        .buy-button:disabled {
-            background-color: #888;
-            cursor: not-allowed;
-            color: #ccc;
-        }
-        
-        .exit-shop-button {
-            margin-top: 40px;
-            padding: 15px 40px;
-            background: #ff6b6b;
-        }
-        
-        /* UI ve düğme stilleri */
-        #ui, .wave-indicator {
-            position: fixed;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            z-index: 100;
-            user-select: none;
-            display: none; 
-        }
-
-        #ui { top: 20px; left: 20px; font-size: 24px; }
-        .wave-indicator { top: 20px; right: 20px; font-size: 28px; padding: 15px 25px; background: rgba(0, 0, 0, 0.5); border-radius: 15px; backdrop-filter: blur(10px); }
-
-        .big-title {
-            font-size: 72px;
-            margin-bottom: 20px;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #f7b731);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: gradientShift 3s ease infinite;
-        }
-        
-        @keyframes gradientShift {
-            0%, 100% { filter: hue-rotate(0deg); }
-            50% { filter: hue-rotate(360deg); }
-        }
-
-        .big-button {
-            margin-top: 20px;
-            padding: 20px 50px;
-            font-size: 24px; /* Butonları biraz küçülttüm */
-            font-weight: bold;
-            color: white;
-            background: linear-gradient(45deg, #ff6b6b, #ee5a6f);
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
-            transition: all 0.3s ease;
-        }
-
-        .big-button:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(255, 107, 107, 0.6);
+        button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <div id="adOverlay" style="display: none;"></div>
-
-    <div id="startScreen">
-        <h1 class="big-title">🎮 CURSOR CHAOS 🎮</h1>
-        <div style="font-size: 24px; margin-bottom: 40px; color: #ddd;">ULTRA EDITION</div>
-        <button class="big-button" onclick="startGame()">BAŞLA!</button>
-        <button class="big-button" style="background: linear-gradient(45deg, #4ecdc4, #64c8ff);" onclick="openShop()">YÜKSELTME MAĞAZASI</button>
-        <button class="big-button" style="background: linear-gradient(45deg, #ffd700, #f7b731);" onclick="openCrystalShop(false)">💎 KRİSTAL AL</button>
-    </div>
-
-    <div id="gameOverScreen" style="display: none;"></div>
-    
-    <div id="shopScreen">
-        <h1 class="big-title">🛒 YÜKSELTME MAĞAZASI</h1>
-        <div style="font-size: 30px; color: white; margin-bottom: 30px;">
-            Mevcut Skor: <span id="shopScoreDisplay">0</span>
-        </div>
-        <div id="shopItems"></div>
-        <button class="big-button exit-shop-button" onclick="closeShop()">ANA MENÜYE DÖN</button>
-    </div>
-
-    <div id="crystalShopScreen">
-        <h1 class="big-title">💎 KRİSTAL MAĞAZASI</h1>
-        <div style="font-size: 30px; color: white; margin-bottom: 30px;">
-            Mevcut Kristal: <span id="shopCrystalDisplay">0</span>
-        </div>
-        <div style="font-size: 20px; color: #ddd; margin-bottom: 20px;">
-            **NOT:** Bu simülasyon, Kristal kazanmayı ve harcamayı göstermek için yapılmıştır. Gerçek ödeme entegrasyonu yoktur.
-        </div>
-        
-        <div class="shop-item">
-            <div class="item-description">
-                <h3>Skor Hızlandırıcı Paket</h3>
-                <p>Anında 10,000 Skor kazan! (Normalde saatlerce sürer)</p>
-            </div>
-            <button class="buy-button" onclick="buyCrystalUpgrade('score_boost', 10)">
-                10 KRİSTAL
-            </button>
-        </div>
-
-        <div class="shop-item">
-            <div class="item-description">
-                <h3>Altın Oyuncu Görünümü</h3>
-                <p>Eşsiz ve havalı Altın renkli görünüm!</p>
-            </div>
-            <button class="buy-button" onclick="buyCrystalUpgrade('gold_skin', 50)">
-                50 KRİSTAL
-            </button>
-        </div>
-
-        <div class="shop-item">
-            <div class="item-description">
-                <h3>Reklam İzle & Kristal Kazan</h3>
-                <p>Reklam izleyerek ücretsiz Kristal kazan!</p>
-            </div>
-            <button class="buy-button" style="background: linear-gradient(45deg, #10e060, #109030); color: white;" onclick="watchAdForCrystal()">
-                🎥 ÜCRETSİZ KRİSTAL
-            </button>
-        </div>
-
-        <button class="big-button exit-shop-button" onclick="closeCrystalShop()">ANA MENÜYE DÖN</button>
-    </div>
-
-
-    <div id="ui">
-        <div>Skor: <span id="score">0</span></div>
-        <div>Kristal: <span id="crystalDisplay">0</span></div>
-        <div style="font-size: 18px; margin-top: 10px;">Can: <span id="health">❤️❤️❤️</span></div>
-        <div id="shield-indicator" style="display: none;">🛡️ KALKAN AKTİF!</div>
-    </div>
-
-    <div class="wave-indicator">
-        🌊 Dalga: <span id="wave">1</span>
-    </div>
 
     <canvas id="gameCanvas"></canvas>
 
+    <div id="uiOverlay">
+        <div id="scoreDisplay" class="info-box">Skor: 0</div>
+        <div id="healthDisplay" class="info-box" style="left: auto; right: 10px;">Can: 3</div>
+    </div>
+    
+    <div id="crystalShopScreen">
+        <h1>KRİSTAL MAĞAZASI</h1>
+        <p>Kristal: <span id="currentCrystals">0</span></p>
+        <button onclick="buyShield()">Kalkan (10 Kristal)</button>
+        <button onclick="buyExtraLife()">Ekstra Can (20 Kristal)</button>
+        <button onclick="watchAdForCrystal()">Reklam İzle & 5 Kristal Kazan</button>
+        <button onclick="closeCrystalShop()">Kapat</button>
+    </div>
+
+    <div id="gameOverScreen">
+        <h1>OYUN BİTTİ!</h1>
+        <p>Son Skorunuz: <span id="finalScore">0</span></p>
+        <button onclick="reviveByAd()">Reklam İzle & Devam Et</button>
+        <button onclick="location.reload()">Yeniden Başla</button>
+        <button onclick="openCrystalShop(false)">Mağazaya Git</button>
+    </div>
+
+    <div id="adOverlay"></div>
+
     <script>
-        // *** 1. TEMEL TANIMLAMALAR VE KALICILIK ***
+        // =======================================================================
+        // BÖLÜM A: GÜVENLİK VE AYARLAR
+        // =======================================================================
+
+        // --- KORUMA KATMANI: ALAN ADI KISITLAMASI (GÜNCELLE) ---
+        // Kendi GitHub Pages adresinizle DEĞİŞTİRİN
+        const ALLOWED_DOMAIN = "imleç-kaos-oyunu.github.io"; 
+
+        if (!window.location.hostname.includes(ALLOWED_DOMAIN) && window.location.hostname !== "localhost") {
+            document.body.innerHTML = '<h1>İzinsiz Erişim!</h1><p>Bu oyunun ticari veya gayri ticari amaçla izinsiz kopyalanması yasaktır. Lütfen orijinal adresten oynayın.</p>';
+            document.body.style.backgroundColor = '#111';
+            document.body.style.display = 'flex';
+            document.body.style.color = 'red';
+            throw new Error("Domain Kısıtlaması İhlali");
+        }
+        // -----------------------------------------------------------------------
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const ui = document.getElementById('ui');
-        const waveIndicator = document.querySelector('.wave-indicator');
-        const adOverlay = document.getElementById('adOverlay');
+        const GAME_WIDTH = 800;
+        const GAME_HEIGHT = 600;
 
-        function setCanvasSize() {
-            const size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-            canvas.width = size;
-            canvas.height = size;
-        }
-        setCanvasSize();
-        window.addEventListener('resize', setCanvasSize); 
-
-        // Oyun değişkenleri
+        // Canvas Boyutunu Ayarla (Mobil uyumlu olması için)
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
         let gameRunning = false;
-        let score = parseInt(localStorage.getItem('cursorChaosScore')) || 0; 
-        let cosmicCrystals = parseInt(localStorage.getItem('cosmicCrystals')) || 0; // Yeni, kalıcı para birimi
-        let health; 
-        let wave = 1;
-        let highScore = localStorage.getItem('cursorChaosHighScore') || 0;
-        let hasShield = false;
-        let slowdownActive = false;
-        let slowdownTimer = 0;
-        let stars = [];
-        let powerups = [];
-        let particles = [];
-        let enemies = [];
-        let environments = [];
-        let playerSkinColor = localStorage.getItem('playerSkinColor') || '#4ecdc4';
+        let score = 0;
+        let crystals = 0;
 
-        // Kalıcı Yükseltmeler (MAĞAZA STATÜSÜ)
-        let upgrades = {
-            maxHealth: parseInt(localStorage.getItem('upg_maxHealth')) || 3,
-            playerSpeed: parseFloat(localStorage.getItem('upg_playerSpeed')) || 6,
-            level: {
-                health: parseInt(localStorage.getItem('lvl_health')) || 0,
-                speed: parseInt(localStorage.getItem('lvl_speed')) || 0
+        // Cihazın Dokunmatik olup olmadığını kontrol et
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        
+        // =======================================================================
+        // BÖLÜM B: OYUN OBJELERİ (OOP YAPISI)
+        // =======================================================================
+        
+        // --- 1. Oyuncu Sınıfı ---
+        class Player {
+            constructor(x, y, radius, color = 'yellow') {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.health = 3;
+                this.shield = false;
+                this.speed = 5; 
             }
-        };
 
-        // Oyuncu Objesi (Yükseltmelere bağlı)
-        let player = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            radius: 20,
-            color: playerSkinColor,
-            speed: upgrades.playerSpeed,
-            targetX: canvas.width / 2, 
-            targetY: canvas.height / 2
-        };
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
 
-        const ENEMY_TYPES = {
-            NORMAL: 'normal',
-            BLIP: 'blip',      // Hızlı ve yavaşlatıcı
-            NETTER: 'netter'   // Alan kısıtlayıcı
-        };
-
-        const keys = {};
-        document.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
-        document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
-
-        // Ses Efektleri (Korundu)
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(type) {
-            if (audioContext.state === 'suspended') audioContext.resume();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+                if (this.shield) {
+                    ctx.strokeStyle = 'cyan';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                }
+            }
             
-            if (type === 'collect') { oscillator.frequency.value = 800; gainNode.gain.setValueAtTime(0.2, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2); } 
-            else if (type === 'hit') { oscillator.frequency.value = 150; gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); } 
-            else if (type === 'powerup' || type === 'shield') { oscillator.frequency.value = 1000; gainNode.gain.setValueAtTime(0.2, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); }
-            else if (type === 'buy') { oscillator.frequency.value = 440; gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1); } 
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
+            // Oyuncuyu hareket ettirme (Dokunmatik veya Fare)
+            moveTo(targetX, targetY) {
+                // Basit bir takip sistemi
+                const dx = targetX - this.x;
+                const dy = targetY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > this.speed) {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
+                } else {
+                    this.x = targetX;
+                    this.y = targetY;
+                }
+                
+                // Kenar sınırları kontrolü
+                this.x = Math.max(this.radius, Math.min(GAME_WIDTH - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(GAME_HEIGHT - this.radius, this.y));
+            }
+        }
+        
+        // --- 2. Düşman Sınıfı ---
+        class Enemy {
+            constructor(x, y, radius, speed) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.speed = speed;
+                this.color = 'red';
+                this.isActive = true; // Nesne Havuzu için
+            }
+
+            draw() {
+                if (this.isActive) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                }
+            }
+
+            // Oyuncuya doğru hareket etme
+            update(playerX, playerY) {
+                if (!this.isActive) return;
+
+                const dx = playerX - this.x;
+                const dy = playerY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                this.x += (dx / distance) * this.speed;
+                this.y += (dy / distance) * this.speed;
+            }
         }
 
-        // *** 2. OYUN YÖNETİMİ VE BAŞLATMA ***
+        const player = new Player(GAME_WIDTH / 2, GAME_HEIGHT / 2, 10);
+        let enemies = [];
+        let mouseX = player.x;
+        let mouseY = player.y;
 
-        function updateStorage(key, value) {
-            localStorage.setItem(key, value);
+        // =======================================================================
+        // BÖLÜM C: GİRİŞ SİSTEMİ (MOBİL UYUMLU)
+        // =======================================================================
+        
+        if (isTouchDevice) {
+            // MOBİL DOKUNMATİK KONTROL
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Varsayılan kaydırma hareketini engelle
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                
+                // Canvas'a göre koordinatları hesapla
+                mouseX = (touch.clientX - rect.left) / (rect.right - rect.left) * GAME_WIDTH;
+                mouseY = (touch.clientY - rect.top) / (rect.bottom - rect.top) * GAME_HEIGHT;
+            }, false);
+            
+        } else {
+            // MASAÜSTÜ FARE KONTROLÜ
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                
+                // Canvas'a göre koordinatları hesapla
+                mouseX = (e.clientX - rect.left) / (rect.right - rect.left) * GAME_WIDTH;
+                mouseY = (e.clientY - rect.top) / (rect.bottom - rect.top) * GAME_HEIGHT;
+            });
+        }
+
+        // =======================================================================
+        // BÖLÜM D: EKONOMİ, REKLAM VE UI FONKSİYONLARI
+        // =======================================================================
+        
+        function updateUI() {
+            document.getElementById('scoreDisplay').textContent = `Skor: ${score}`;
+            document.getElementById('healthDisplay').textContent = `Can: ${player.health} ${player.shield ? '(Kalkan Var)' : ''}`;
+            document.getElementById('currentCrystals').textContent = crystals;
         }
 
         function updateCrystals(amount) {
-            cosmicCrystals += amount;
-            updateStorage('cosmicCrystals', cosmicCrystals);
-            document.getElementById('crystalDisplay').textContent = cosmicCrystals;
-        }
-
-        function applyUpgrades() {
-            player.speed = upgrades.playerSpeed;
-            player.color = playerSkinColor;
-        }
-
-        function startGame() {
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'none';
-            canvas.style.display = 'block'; 
-            ui.style.display = 'block'; 
-            waveIndicator.style.display = 'block'; 
-            
-            gameRunning = true;
-            health = upgrades.maxHealth; 
-            wave = 1;
-            
-            setCanvasSize(); 
-            applyUpgrades();
-            
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
-            player.targetX = player.x;
-            player.targetY = player.y;
-
-            stars = [];
-            powerups = [];
-            particles = [];
-            enemies = [];
-            environments = [];
-
-            spawnEnemy(ENEMY_TYPES.NORMAL, 100, 100);
-            spawnEnvironment();
-
+            crystals += amount;
             updateUI();
-            spawnStars();
-            
-            requestAnimationFrame(gameLoop);
+        }
+
+        function buyShield() {
+            if (crystals >= 10 && !player.shield) {
+                updateCrystals(-10);
+                player.shield = true;
+                alert('Kalkan Satın Alındı!');
+            } else if (player.shield) {
+                alert('Zaten kalkanınız var!');
+            } else {
+                alert('Yetersiz Kristal!');
+            }
+            updateUI();
+        }
+
+        function buyExtraLife() {
+             if (crystals >= 20) {
+                updateCrystals(-20);
+                player.health += 1;
+                alert('Ekstra Can Satın Alındı!');
+            } else {
+                alert('Yetersiz Kristal!');
+            }
+            updateUI();
         }
         
-        function restartGame() {
+        function openCrystalShop(isGamePaused) {
+            document.getElementById('crystalShopScreen').style.display = 'flex';
+            if (isGamePaused) gameRunning = false;
+        }
+        
+        function closeCrystalShop() {
+            document.getElementById('crystalShopScreen').style.display = 'none';
+            gameRunning = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- REKLAM SİMÜLASYONU (GAM Entegrasyonu Buraya Gelecek) ---
+        async function simulateRewardedAd(onComplete, onFail) {
+            // Gerçekte burada GAM veya AdSense Rewarded API çağrılır
+            const adOverlay = document.getElementById('adOverlay');
+            adOverlay.innerHTML = '🎥 **3 Saniyelik Ödüllü Reklam Oynatılıyor...** (Simülasyon)';
+            adOverlay.style.display = 'flex';
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            adOverlay.style.display = 'none';
+
+            if (Math.random() > 0.1) { // %90 başarı
+                onComplete(); 
+            } else {
+                onFail(); 
+            }
+        }
+        
+        async function reviveByAd() {
             document.getElementById('gameOverScreen').style.display = 'none';
-            startGame();
+
+            try {
+                await simulateRewardedAd(() => {
+                    player.health = 1; 
+                    player.shield = true;
+                    updateUI();
+                    gameRunning = true;
+                    requestAnimationFrame(gameLoop);
+                    alert("Reklam tamamlandı! 1 Can ve Kalkan ile oyuna devam ediyorsunuz!");
+                }, () => {
+                    alert("Reklam tamamlanamadı. Ödül verilmedi.");
+                    document.getElementById('gameOverScreen').style.display = 'flex'; // Başarısızsa ekranı aç
+                });
+            } catch (error) {
+                console.error("Reklam hatası:", error);
+                document.getElementById('gameOverScreen').style.display = 'flex';
+            }
+        }
+        
+        async function watchAdForCrystal() {
+             document.getElementById('crystalShopScreen').style.display = 'none';
+            try {
+                await simulateRewardedAd(() => {
+                    const reward = 5;
+                    updateCrystals(reward);
+                    alert(`Reklam başarıyla tamamlandı! ${reward} Kristal kazandınız.`);
+                }, () => {
+                    alert("Reklam tamamlanamadı. Kristal kazanılamadı.");
+                });
+            } catch (error) {
+                console.error("Reklam hatası:", error);
+            } finally {
+                openCrystalShop(false); // Mağazayı tekrar aç
+            }
+        }
+
+        // =======================================================================
+        // BÖLÜM E: OYUN MANTIĞI VE DÖNGÜSÜ
+        // =======================================================================
+
+        let lastSpawnTime = 0;
+        const spawnInterval = 500; // 0.5 saniyede bir düşman doğur
+
+        function spawnEnemy() {
+            const size = Math.random() * 15 + 5; // 5 ile 20 arası
+            const speed = Math.random() * 1 + 1.5; // 1.5 ile 2.5 arası
+            let x, y;
+
+            // Ekranın dışından rastgele bir yerden gel
+            if (Math.random() < 0.5) {
+                x = Math.random() < 0.5 ? -size : GAME_WIDTH + size;
+                y = Math.random() * GAME_HEIGHT;
+            } else {
+                x = Math.random() * GAME_WIDTH;
+                y = Math.random() < 0.5 ? -size : GAME_HEIGHT + size;
+            }
+            
+            enemies.push(new Enemy(x, y, size, speed));
+        }
+
+        function checkCollisions() {
+            enemies.forEach((enemy, index) => {
+                if (!enemy.isActive) return;
+
+                const dx = player.x - enemy.x;
+                const dy = player.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < player.radius + enemy.radius) {
+                    // Çarpışma!
+                    if (player.shield) {
+                        player.shield = false; // Kalkanı kaybet
+                        enemy.isActive = false; // Düşmanı yok et (Nesne Havuzu mantığı)
+                        score += 1;
+                        updateCrystals(1);
+                    } else {
+                        player.health -= 1; // Can kaybet
+                        enemy.isActive = false;
+                        score += 1; // Çarpışsa da biraz puan ver
+                        updateCrystals(1);
+                        
+                        if (player.health <= 0) {
+                            gameOver();
+                        }
+                    }
+                }
+            });
+            // Pasif düşmanları temizle (Basit Nesne Havuzu)
+            enemies = enemies.filter(e => e.isActive);
         }
 
         function gameOver() {
             gameRunning = false;
-            
-            updateStorage('cursorChaosScore', score); // Kalıcı skoru güncelle
-
-            canvas.style.display = 'none';
-            ui.style.display = 'none';
-            waveIndicator.style.display = 'none';
-            
-            if (score > highScore) {
-                highScore = score;
-                updateStorage('cursorChaosHighScore', highScore);
-            }
-            
-            // Ölümden Dönme Butonu ile gameOver Ekranını dinamik oluştur
-            document.getElementById('gameOverScreen').innerHTML = `
-                <h1 class="big-title">💀 OYUN BİTTİ 💀</h1>
-                <div id="finalScore" style="font-size: 48px; color: #ffd700; margin: 20px 0;">Son Skor: ${score}</div>
-                <div id="highScore" style="font-size: 24px; color: #4ecdc4; margin-bottom: 20px;">En Yüksek Skor: ${highScore}</div>
-                
-                <button class="big-button" style="background: linear-gradient(45deg, #10e060, #109030);" onclick="reviveByAd()">
-                    🎥 REKLAM İZLE & DEVAM ET (1 CAN + Kalkan)
-                </button>
-                
-                <button class="big-button" onclick="restartGame()">TEKRAR OYNA</button>
-                <button class="big-button" style="background: linear-gradient(45deg, #4ecdc4, #64c8ff);" onclick="openShop(true)">YÜKSELTME MAĞAZASI</button>
-            `;
-
+            document.getElementById('finalScore').textContent = score;
             document.getElementById('gameOverScreen').style.display = 'flex';
         }
 
-        // *** 3. MAĞAZA VE KRİSTAL YÖNETİMİ ***
-        
-        function openShop(fromGameOver = false) {
-            if (!fromGameOver) document.getElementById('startScreen').style.display = 'none';
-            else document.getElementById('gameOverScreen').style.display = 'none';
-
-            document.getElementById('shopScreen').style.display = 'flex';
-            updateShopUI();
-        }
-
-        function closeShop() {
-            document.getElementById('shopScreen').style.display = 'none';
-            document.getElementById('startScreen').style.display = 'flex';
-        }
-
-        function updateShopUI() {
-            document.getElementById('shopScoreDisplay').textContent = score;
-            const shopItemsContainer = document.getElementById('shopItems');
-            shopItemsContainer.innerHTML = '';
-
-            const items = [
-                { id: 'health', name: 'Maksimum Can (+1)', cost: 500 * (upgrades.level.health + 1), maxLevel: 5, currentLevel: upgrades.level.health, desc: `Maksimum Can: ${upgrades.maxHealth}` },
-                { id: 'speed', name: 'Oyuncu Hızı (+0.5)', cost: 750 * (upgrades.level.speed + 1), maxLevel: 5, currentLevel: upgrades.level.speed, desc: `Mevcut Hız: ${upgrades.playerSpeed.toFixed(1)}` },
-            ];
-
-            items.forEach(item => {
-                const isMax = item.currentLevel >= item.maxLevel;
-                const canAfford = score >= item.cost;
-                const buttonText = isMax ? 'MAX' : (canAfford ? `${item.cost} SKOR` : `GEREKLİ: ${item.cost}`);
-                
-                shopItemsContainer.innerHTML += `
-                    <div class="shop-item">
-                        <div class="item-description">
-                            <h3>${item.name} (Seviye ${item.currentLevel}/${item.maxLevel})</h3>
-                            <p>${item.desc}</p>
-                        </div>
-                        <button class="buy-button" onclick="buyUpgrade('${item.id}', ${item.cost})" 
-                            ${isMax || !canAfford ? 'disabled' : ''}>
-                            ${buttonText}
-                        </button>
-                    </div>
-                `;
-            });
-        }
-
-        function buyUpgrade(id, cost) {
-            if (score >= cost) {
-                score -= cost;
-                playSound('buy');
-                
-                if (id === 'health') {
-                    upgrades.maxHealth += 1;
-                    upgrades.level.health += 1;
-                    updateStorage('upg_maxHealth', upgrades.maxHealth);
-                    updateStorage('lvl_health', upgrades.level.health);
-                } else if (id === 'speed') {
-                    upgrades.playerSpeed += 0.5;
-                    upgrades.level.speed += 1;
-                    updateStorage('upg_playerSpeed', upgrades.playerSpeed);
-                    updateStorage('lvl_speed', upgrades.level.speed);
-                    applyUpgrades(); // Hızı hemen güncelle
-                }
-                
-                updateStorage('cursorChaosScore', score); 
-                updateShopUI();
-            }
-        }
-        
-        // Kozmik Kristal Mağazası Fonksiyonları
-        function openCrystalShop(fromGameOver = false) {
-             if (!fromGameOver) document.getElementById('startScreen').style.display = 'none';
-             else document.getElementById('gameOverScreen').style.display = 'none';
-             
-             document.getElementById('shopCrystalDisplay').textContent = cosmicCrystals;
-             document.getElementById('crystalShopScreen').style.display = 'flex';
-        }
-
-        function closeCrystalShop() {
-            document.getElementById('crystalShopScreen').style.display = 'none';
-            document.getElementById('startScreen').style.display = 'flex';
-        }
-        
-        function buyCrystalUpgrade(id, cost) {
-            if (cosmicCrystals >= cost) {
-                updateCrystals(-cost);
-                playSound('buy');
-                
-                if (id === 'score_boost') {
-                    score += 10000;
-                    updateStorage('cursorChaosScore', score);
-                    updateShopUI(); // Skor güncellemesi için yükseltme mağazasını da güncelle
-                    alert("10,000 Skor anında eklendi!");
-                } else if (id === 'gold_skin') {
-                    playerSkinColor = '#ffd700'; // Altın rengi
-                    updateStorage('playerSkinColor', playerSkinColor);
-                    applyUpgrades(); // Rengi hemen güncelle
-                    alert("Altın Oyuncu Görünümü satın alındı!");
-                }
-                
-                document.getElementById('shopCrystalDisplay').textContent = cosmicCrystals;
-            } else {
-                alert(`Yetersiz Kristal! ${cost} Kristale ihtiyacınız var.`);
-            }
-        }
-        
-        function watchAdForCrystal() {
-            simulateRewardedAd(() => {
-                const reward = 5;
-                updateCrystals(reward);
-                alert(`Reklam başarıyla tamamlandı! ${reward} Kristal kazandınız.`);
-            }, () => {
-                alert("Reklam tamamlanamadı. Lütfen tekrar deneyin.");
-            });
-        }
-
-        // *** 4. REKLAM VE DEVAM ET SİSTEMİ ***
-
-        function simulateRewardedAd(onSuccess, onFailure) {
-            adOverlay.innerHTML = '🎥 REKLAM İZLENİYOR... (3 saniye simülasyon)';
-            adOverlay.style.display = 'flex';
-
-            // 3 saniye sonra (Gerçek reklam 15-30 saniye sürer)
-            setTimeout(() => {
-                adOverlay.style.display = 'none';
-                
-                if (Math.random() > 0.1) { // %90 başarı
-                    onSuccess();
-                } else {
-                    alert("Reklam tamamlanamadı. Lütfen tekrar deneyin.");
-                    onFailure();
-                }
-            }, 3000); 
-        }
-
-        function reviveByAd() {
-            simulateRewardedAd(() => {
-                // Başarı: Oyuncu 1 Can ve 1 Kalkan kazanır.
-                health = 1; 
-                hasShield = true;
-                updateUI();
-                
-                document.getElementById('gameOverScreen').style.display = 'none';
-                gameRunning = true;
-                requestAnimationFrame(gameLoop);
-                
-                alert("Reklam tamamlandı! 1 Can ve Kalkan ile oyuna devam ediyorsunuz!");
-            }, () => {
-                // Başarısız: Oyun Bitti ekranı geri gelir.
-                document.getElementById('gameOverScreen').style.display = 'flex';
-            });
-        }
-        
-        // *** 5. OYUN NESNESİ VE ÇEVRE YÖNETİMİ ***
-
-        function spawnEnemy(type, x, y) {
-            let enemyObject = {
-                x: x || Math.random() * canvas.width,
-                y: y || Math.random() * canvas.height,
-                radius: 18,
-                baseSpeed: 2.5,
-                type: type,
-                angry: false
-            };
-            
-            if (type === ENEMY_TYPES.NORMAL) { enemyObject.radius = 18; enemyObject.color = '#ff6b6b'; } 
-            else if (type === ENEMY_TYPES.BLIP) { enemyObject.radius = 12; enemyObject.baseSpeed = 4.5; enemyObject.color = '#f7b731'; } 
-            else if (type === ENEMY_TYPES.NETTER) { enemyObject.radius = 25; enemyObject.baseSpeed = 0.5; enemyObject.color = '#9b59b6'; }
-            
-            enemyObject.speed = enemyObject.baseSpeed + (wave * 0.4);
-            enemies.push(enemyObject);
-        }
-
-        function spawnEnvironment() {
-            environments = [];
-            
-            if (wave >= 3) {
-                environments.push({
-                    x: Math.random() * canvas.width, y: Math.random() * canvas.height, radius: 30, pullStrength: 0.15, type: 'blackhole'
-                });
-            }
-
-            if (wave >= 5) {
-                const isHorizontal = Math.random() > 0.5;
-                environments.push({
-                    x: isHorizontal ? 0 : Math.random() * canvas.width, y: isHorizontal ? Math.random() * canvas.height : 0,
-                    width: isHorizontal ? canvas.width : 50, height: isHorizontal ? 50 : canvas.height,
-                    effect: isHorizontal ? 'speedup' : 'slowdown', type: 'speedzone'
-                });
-            }
-        }
-        
-        function nextWave() {
-            wave++;
-            updateUI();
-            spawnStars();
-            spawnPowerups();
-            spawnEnvironment(); 
-            score += 50 * wave;
-            
-            if (wave % 3 === 0) spawnEnemy(ENEMY_TYPES.BLIP);
-            if (wave % 5 === 0) spawnEnemy(ENEMY_TYPES.NETTER);
-            
-            enemies.forEach(e => e.speed = e.baseSpeed + (wave * 0.4));
-
-            createParticles(canvas.width / 2, 50, '#4ecdc4', 50);
-        }
-        
-        // ... (Diğer yardımcı fonksiyonlar: updateUI, checkCollision, createParticles, spawnStars, spawnPowerups) ...
-
-        function updateUI() {
-            document.getElementById('score').textContent = score;
-            document.getElementById('crystalDisplay').textContent = cosmicCrystals;
-            document.getElementById('wave').textContent = wave;
-            
-            let healthDisplay = '';
-            for (let i = 0; i < health; i++) {
-                healthDisplay += '❤️';
-            }
-            document.getElementById('health').textContent = healthDisplay || '💀';
-            document.getElementById('shield-indicator').style.display = hasShield ? 'block' : 'none';
-        }
-        
-        function checkCollision(obj1, obj2) {
-            const dx = obj1.x - obj2.x;
-            const dy = obj1.y - obj2.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            return distance < obj1.radius + obj2.radius;
-        }
-
-        function createParticles(x, y, color, count = 15) {
-            for (let i = 0; i < count; i++) {
-                particles.push({ x: x, y: y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, life: 1, color: color, radius: Math.random() * 6 + 2 });
-            }
-        }
-
-        function spawnStars() {
-            stars = [];
-            const starCount = 3 + Math.floor(wave / 2);
-            for (let i = 0; i < starCount; i++) {
-                stars.push({ x: Math.random() * (canvas.width - 100) + 50, y: Math.random() * (canvas.height - 100) + 50, radius: 15, pulsePhase: Math.random() * Math.PI * 2 });
-            }
-        }
-
-        function spawnPowerups() {
-            powerups = [];
-            if (wave >= 2 && Math.random() > 0.3) { powerups.push({ x: Math.random() * (canvas.width - 100) + 50, y: Math.random() * (canvas.height - 100) + 50, radius: 18, type: 'shield', rotation: 0 }); }
-            if (wave >= 3 && Math.random() > 0.5) { powerups.push({ x: Math.random() * (canvas.width - 100) + 50, y: Math.random() * (canvas.height - 100) + 50, radius: 18, type: 'health', pulse: 0 }); }
-            if (wave >= 4 && Math.random() > 0.4) { powerups.push({ x: Math.random() * (canvas.width - 100) + 50, y: Math.random() * (canvas.height - 100) + 50, radius: 18, type: 'slowdown', sparkle: 0 }); }
-        }
-
-        // *** 6. ANA OYUN DÖNGÜSÜ (gameLoop) ***
-
-        function gameLoop() {
+        // Ana Oyun Döngüsü
+        function gameLoop(timestamp) {
             if (!gameRunning) return;
 
-            // Ekranı temizle
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // 1. Ekranı temizle
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // 2. Oyuncuyu hedef koordinatlara taşı
+            player.moveTo(mouseX, mouseY);
+
+            // 3. Düşmanları güncelle
+            enemies.forEach(enemy => enemy.update(player.x, player.y));
+
+            // 4. Yeni düşman oluştur
+            if (timestamp - lastSpawnTime > spawnInterval) {
+                spawnEnemy();
+                lastSpawnTime = timestamp;
+            }
             
-            // Çevre Etkileşimlerini Hesapla (Black Hole ve Speed Zone)
-            let playerCurrentSpeed = player.speed;
-            let playerSlowedByNetter = false;
-
-            environments.forEach(env => {
-                if (env.type === 'blackhole') {
-                    const dx = env.x - player.x;
-                    const dy = env.y - player.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 200) {
-                        const angle = Math.atan2(dy, dx);
-                        const force = env.pullStrength / (dist / 50); 
-                        player.targetX += Math.cos(angle) * force;
-                        player.targetY += Math.sin(angle) * force;
-                        
-                        enemies.forEach(e => {
-                            const e_dx = env.x - e.x;
-                            const e_dy = env.y - e.y;
-                            const e_dist = Math.sqrt(e_dx * e_dx + e_dy * e_dy);
-                            if (e_dist < 200) {
-                                const e_angle = Math.atan2(e_dy, e_dx);
-                                const e_force = env.pullStrength / (e_dist / 50);
-                                e.x += Math.cos(e_angle) * e_force;
-                                e.y += Math.sin(e_angle) * e_force;
-                            }
-                        });
-                    }
-                } else if (env.type === 'speedzone') {
-                    if (player.x > env.x && player.x < env.x + env.width && player.y > env.y && player.y < env.y + env.height) {
-                        playerCurrentSpeed *= (env.effect === 'speedup' ? 1.5 : 0.5);
-                    }
-                }
-            });
-
-            // Netter Düşmanının yavaşlatma etkisini kontrol et
-            enemies.forEach(e => {
-                if (e.type === ENEMY_TYPES.NETTER) {
-                    const dist = Math.sqrt((player.x - e.x)**2 + (player.y - e.y)**2);
-                    if (dist < e.radius + 100) { 
-                        playerSlowedByNetter = true;
-                    }
-                }
-            });
-
-            if (playerSlowedByNetter) playerCurrentSpeed *= 0.2; 
-            if (slowdownActive) slowdownTimer--; if (slowdownTimer <= 0) slowdownActive = false;
-
-            // Oyuncu Hareketi ve Çizimi (Korundu)
-            if (keys['w'] || keys['arrowup']) player.targetY -= playerCurrentSpeed;
-            if (keys['s'] || keys['arrowdown']) player.targetY += playerCurrentSpeed;
-            if (keys['a'] || keys['arrowleft']) player.targetX -= playerCurrentSpeed;
-            if (keys['d'] || keys['arrowright']) player.targetX += playerCurrentSpeed;
-            player.targetX = Math.max(player.radius, Math.min(canvas.width - player.radius, player.targetX));
-            player.targetY = Math.max(player.radius, Math.min(canvas.height - player.radius, player.targetY));
-            player.x += (player.targetX - player.x) * 0.15;
-            player.y += (player.targetY - player.y) * 0.15;
-
-            // Düşman Hareketi, Çizimi ve Çarpışma Kontrolü (Güncellendi)
-            enemies.forEach((enemy, index) => {
-                const dx = player.x - enemy.x;
-                const dy = player.y - enemy.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const angle = Math.atan2(dy, dx);
-
-                let currentEnemySpeed = enemy.baseSpeed + (wave * 0.4);
-                if (slowdownActive) currentEnemySpeed *= 0.3;
-
-                if (enemy.type !== ENEMY_TYPES.NETTER) {
-                    enemy.x += Math.cos(angle) * currentEnemySpeed;
-                    enemy.y += Math.sin(angle) * currentEnemySpeed;
-                }
-                enemy.x = Math.max(enemy.radius, Math.min(canvas.width - enemy.radius, enemy.x));
-                enemy.y = Math.max(enemy.radius, Math.min(canvas.height - enemy.radius, enemy.y));
-                enemy.angry = distance < 100;
-
-                ctx.save();
-                ctx.translate(enemy.x, enemy.y);
-                let scale = 1;
-                if (enemy.angry && enemy.type === ENEMY_TYPES.NORMAL) scale = 1.2 + Math.sin(Date.now() * 0.02) * 0.1;
-                else if (enemy.type === ENEMY_TYPES.BLIP) scale = 1 + Math.sin(Date.now() * 0.1) * 0.2;
-                ctx.scale(scale, scale);
-                ctx.beginPath();
-                ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
-                ctx.fillStyle = slowdownActive ? '#9b59b6' : (enemy.angry ? '#ff0000' : enemy.color);
-                ctx.fill();
-                // Basit yüz çizimi (Düşman tipine göre renk)
-                if (enemy.type === ENEMY_TYPES.NORMAL) {
-                    ctx.fillStyle = 'white'; ctx.fillRect(-6, -4, 4, 4); ctx.fillRect(2, -4, 4, 4);
-                } else if (enemy.type === ENEMY_TYPES.BLIP) {
-                    ctx.fillStyle = 'black'; ctx.fillRect(-4, -4, 2, 2); ctx.fillRect(2, -4, 2, 2);
-                }
-                ctx.restore();
-
-                // Çarpışma Kontrolü
-                if (checkCollision(player, enemy)) {
-                    if (enemy.type === ENEMY_TYPES.NORMAL || enemy.type === ENEMY_TYPES.NETTER) {
-                        if (hasShield) {
-                            hasShield = false;
-                            createParticles(player.x, player.y, '#64c8ff', 40); playSound('shield');
-                        } else {
-                            health--;
-                            createParticles(player.x, player.y, '#ff6b6b', 40); playSound('hit');
-                            const pushAngle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-                            player.x += Math.cos(pushAngle) * 100; player.y += Math.sin(pushAngle) * 100;
-                            player.targetX = player.x; player.targetY = player.y;
-
-                            if (health <= 0) { gameOver(); return; }
-                        }
-                        updateUI();
-                    }
-                }
-            });
-
-            // Çevre Çizimi (Black Hole ve Speed Zone)
-            environments.forEach(env => {
-                if (env.type === 'blackhole') {
-                    ctx.beginPath(); ctx.arc(env.x, env.y, env.radius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(10, 10, 30, 0.9)'; ctx.fill(); ctx.strokeStyle = 'white'; ctx.lineWidth = 1; ctx.stroke();
-                } else if (env.type === 'speedzone') {
-                    ctx.fillStyle = env.effect === 'speedup' ? 'rgba(78, 205, 196, 0.3)' : 'rgba(255, 107, 107, 0.3)';
-                    ctx.fillRect(env.x, env.y, env.width, env.height); ctx.strokeStyle = env.effect === 'speedup' ? '#4ecdc4' : '#ff6b6b'; ctx.lineWidth = 3; ctx.strokeRect(env.x, env.y, env.width, env.height);
-                }
-            });
-
-            // Yıldızlar, Power-up'lar ve Oyuncu Çizimi (Korundu)
-            stars.forEach((star, index) => {
-                // ... (Yıldız çizim ve çarpışma mantığı korundu) ...
-                ctx.save();
-                ctx.translate(star.x, star.y);
-                ctx.rotate(Date.now() * 0.003);
-                star.pulsePhase += 0.1;
-                const pulse = Math.sin(star.pulsePhase) * 3;
-                ctx.fillStyle = '#ffd700';
-                ctx.beginPath();
-                for (let i = 0; i < 5; i++) {
-                    const starAngle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
-                    const radius = i % 2 === 0 ? star.radius + pulse : (star.radius + pulse) * 0.5;
-                    const x = Math.cos(starAngle) * radius;
-                    const y = Math.sin(starAngle) * radius;
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.closePath();
-                ctx.fill();
-                ctx.restore();
-
-                if (checkCollision(player, star)) {
-                    stars.splice(index, 1); score += 10 * wave; updateUI(); createParticles(star.x, star.y, '#ffd700', 25); playSound('collect');
-                }
-            });
+            // 5. Çarpışmaları kontrol et
+            checkCollisions();
             
-            // Power-up'lar (Çizim ve Toplama Mantığı korundu)
-            powerups.forEach((powerup, index) => {
-                ctx.save();
-                ctx.translate(powerup.x, powerup.y);
-                // ... (Power-up çizim kodları korundu) ...
-                if (powerup.type === 'shield') { powerup.rotation += 0.05; ctx.rotate(powerup.rotation); ctx.strokeStyle = '#64c8ff'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, -powerup.radius); ctx.lineTo(-powerup.radius * 0.7, powerup.radius * 0.3); ctx.lineTo(0, powerup.radius * 0.7); ctx.lineTo(powerup.radius * 0.7, powerup.radius * 0.3); ctx.closePath(); ctx.stroke(); } 
-                else if (powerup.type === 'health') { powerup.pulse += 0.1; const heartScale = 1 + Math.sin(powerup.pulse) * 0.2; ctx.scale(heartScale, heartScale); ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.moveTo(0, 5); ctx.bezierCurveTo(-10, -5, -15, 5, 0, 15); ctx.bezierCurveTo(15, 5, 10, -5, 0, 5); ctx.fill(); } 
-                else if (powerup.type === 'slowdown') { powerup.sparkle += 0.15; ctx.rotate(powerup.sparkle); ctx.fillStyle = '#f7b731'; ctx.shadowColor = '#f7b731'; ctx.shadowBlur = 20; ctx.beginPath(); for (let i = 0; i < 8; i++) { const starAngle = (i * Math.PI) / 4; const radius = i % 2 === 0 ? powerup.radius : powerup.radius * 0.5; const x = Math.cos(starAngle) * radius; const y = Math.sin(starAngle) * radius; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); } ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; }
-                ctx.restore();
+            // 6. Ekrana çiz
+            player.draw();
+            enemies.forEach(enemy => enemy.draw());
+            
+            // 7. Arayüzü güncelle
+            updateUI();
 
-                if (checkCollision(player, powerup)) {
-                    powerups.splice(index, 1);
-                    if (powerup.type === 'shield') { hasShield = true; createParticles(powerup.x, powerup.y, '#64c8ff', 30); playSound('shield'); } 
-                    else if (powerup.type === 'health') { health = Math.min(health + 1, upgrades.maxHealth); createParticles(powerup.x, powerup.y, '#ff6b6b', 30); playSound('powerup'); } 
-                    else if (powerup.type === 'slowdown') { slowdownActive = true; slowdownTimer = 180; createParticles(powerup.x, powerup.y, '#f7b731', 30); playSound('powerup'); }
-                    updateUI();
-                }
-            });
-
-            // Oyuncu Çizimi (Kalkan ve Gözler korundu, renk LocalStorage'dan alındı)
-            ctx.beginPath(); ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2); ctx.fillStyle = player.color; ctx.fill();
-            if (hasShield) { ctx.strokeStyle = 'rgba(100, 200, 255, 0.8)'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(player.x, player.y, player.radius + 8, 0, Math.PI * 2); ctx.stroke(); }
-            ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(player.x - 7, player.y - 5, 5, 0, Math.PI * 2); ctx.arc(player.x + 7, player.y - 5, 5, 0, Math.PI * 2); ctx.fill();
-
-            // Parçacıklar (Korundu)
-            particles.forEach((p, index) => {
-                p.x += p.vx; p.y += p.vy; p.life -= 0.02; p.vy += 0.2;
-                if (p.life <= 0) return particles.splice(index, 1);
-                ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-            });
-
-            // Yeni dalga kontrolü
-            if (stars.length === 0) nextWave();
-
-            // Döngüyü tekrarla
+            // 8. Döngüyü tekrarla
             requestAnimationFrame(gameLoop);
         }
+
+        // Oyunu Başlat
+        function startGame() {
+            if (!gameRunning) {
+                gameRunning = true;
+                score = 0;
+                player.health = 3;
+                player.shield = false;
+                enemies = [];
+                // Kristal sayısını koru
+                updateUI();
+                requestAnimationFrame(gameLoop);
+                document.getElementById('gameOverScreen').style.display = 'none';
+            }
+        }
+
+        // Başlangıçta oyunu hazırla
+        startGame(); // Oyun başlar başlamaz hazırla
+        
+        // İlk yüklemede Mağazayı veya Başlangıç Ekranını göstermek isteyebiliriz.
+        // Şimdilik direkt başladık, ancak profesyonel sürümde bir Ana Menü eklenmeli.
+        
     </script>
 </body>
 </html>
-
