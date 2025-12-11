@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CHAOS RUNNER: ASCENSION</title>
+    <title>CHAOS RUNNER: PC CORE</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #050505; overflow: hidden; font-family: 'Orbitron', sans-serif; touch-action: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body { background-color: #050505; overflow: hidden; font-family: 'Orbitron', sans-serif; cursor: none; } /* PC için cursor gizlendi */
 
-        /* ARAYÜZ KATMANLARI */
+        /* ARAYÜZ VE EKRAN */
         #gameCanvas { display: block; width: 100%; height: 100%; }
-        
         .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; }
         
-        /* HUD (Oyun İçi Göstergeler) */
-        #hud { padding: 20px; display: none; justify-content: space-between; align-items: flex-start; }
+        /* HUD */
+        #hud { padding: 20px; display: none; justify-content: space-between; align-items: flex-start; color: #fff; }
         .stat-block { text-align: center; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
-        .stat-value { font-size: 24px; font-weight: 900; color: #fff; display: block; }
+        .stat-value { font-size: 24px; font-weight: 900; display: block; }
         .stat-label { font-size: 10px; color: #888; letter-spacing: 2px; }
         
         /* BÖLGE İSMİ (Sinematik) */
@@ -30,7 +29,7 @@
             z-index: 10;
         }
 
-        /* ANA MENÜ */
+        /* MENÜ */
         #menuScreen {
             position: absolute; width: 100%; height: 100%;
             background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
@@ -53,6 +52,7 @@
             cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
             transition: all 0.2s; box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
         }
+        button:hover { background: rgba(0,255,255,0.1); } /* PC Hover Eklendi */
         button:active { transform: scale(0.95); background: rgba(0,255,255,0.2); }
 
         /* GAME OVER */
@@ -112,7 +112,7 @@
         <h1>CHAOS RUNNER</h1>
         <div class="subtitle">Karanlıktan Kaç, Işığı Bul</div>
         <button onclick="Game.init()">BAŞLAT</button>
-        <div style="margin-top:20px; color:#444; font-size:10px;">V3.0 FINAL CORE ENGINE</div>
+        <div style="margin-top:20px; color:#444; font-size:10px;">V3.1 PC CORE ENGINE</div>
     </div>
 
     <div id="gameOverScreen">
@@ -123,15 +123,20 @@
 
 <script>
 /**
- * CHAOS RUNNER: CORE ENGINE v3.0
- * 100 Bölümlük Procedural Dalga Sistemi
+ * CHAOS RUNNER: PC CORE ENGINE v3.1
+ * Klavye ve Fare Kontrolü için Güncellendi
  */
 
 // --- SES SİSTEMİ (Procedural Synth) ---
 const AudioEngine = {
     ctx: null,
     init: function() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // Tarayıcıdaki ses iznini almak için
+        document.addEventListener('click', () => {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }, { once: true });
     },
     playTone: function(freq, type, duration, vol) {
         if(!this.ctx) return;
@@ -150,7 +155,7 @@ const AudioEngine = {
         dash: () => AudioEngine.playTone(600, 'sawtooth', 0.2, 0.1),
         hit: () => AudioEngine.playTone(100, 'square', 0.5, 0.2),
         collect: () => AudioEngine.playTone(1200, 'sine', 0.1, 0.1),
-        wave: () => AudioEngine.playTone(50, 'sawtooth', 2.0, 0.3) // Bass drop
+        wave: () => AudioEngine.playTone(50, 'sawtooth', 2.0, 0.3)
     }
 };
 
@@ -172,7 +177,7 @@ const VFX = {
     update: function(ctx) {
         // Shake logic
         if(this.shakeTimer > 0) {
-            const mag = this.shakeTimer;
+            const mag = this.shakeTimer * 0.5; // Daha az shake PC'de
             ctx.translate((Math.random()-0.5)*mag, (Math.random()-0.5)*mag);
             this.shakeTimer *= 0.9;
             if(this.shakeTimer < 0.5) this.shakeTimer = 0;
@@ -214,16 +219,31 @@ class Player {
         this.x = window.innerWidth / 2;
         this.y = window.innerHeight / 2;
         this.radius = 15;
-        this.speed = 5;
         this.color = '#00ffff';
         this.trail = [];
         this.dashCooldown = 0;
         this.health = 100;
         this.targetX = this.x;
         this.targetY = this.y;
+        this.isDashing = false;
+        this.keys = {}; // Klavye durumu
     }
     
     update() {
+        // Klavye Hareket Hedefi Hesaplama (WASD)
+        let moveX = 0;
+        let moveY = 0;
+        if (this.keys['KeyW'] || this.keys['ArrowUp']) moveY -= 1;
+        if (this.keys['KeyS'] || this.keys['ArrowDown']) moveY += 1;
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveX -= 1;
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX += 1;
+
+        if (moveX !== 0 || moveY !== 0) {
+            // Klavye ile hareket ederken, fareyi de dahil et (Hybrid Kontrol)
+            this.targetX = this.x + moveX * 20; // 20: Hız çarpanı
+            this.targetY = this.y + moveY * 20;
+        }
+
         // Hareketi yumuşat
         this.x += (this.targetX - this.x) * 0.1;
         this.y += (this.targetY - this.y) * 0.1;
@@ -236,25 +256,32 @@ class Player {
         this.trail.push({x: this.x, y: this.y, alpha: 0.8});
         if(this.trail.length > 10) this.trail.shift();
         
-        // Cooldown
-        if(this.dashCooldown > 0) this.dashCooldown--;
+        // Cooldown ve Dash Durumu
+        if(this.dashCooldown > 0) {
+            this.dashCooldown--;
+            this.isDashing = this.dashCooldown > 40;
+        } else {
+            this.isDashing = false;
+        }
     }
 
     dash() {
         if(this.dashCooldown > 0) return;
-        this.dashCooldown = 60; // 1 saniye
+        this.dashCooldown = 60; // 1 saniye Dash Cooldown
+        this.isDashing = true;
         VFX.shake(10);
         AudioEngine.sfx.dash();
         
-        // İleri atılma mantığı
+        // Atılma mantığı (Hedefe veya hareket yönüne atıl)
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
+
+        // Atılma mesafesi ve partikül saçma
         if(dist > 0) {
-            this.x += (dx/dist) * 150;
-            this.y += (dy/dist) * 150;
-            // Dash sırasında partikül saç
-            for(let i=0; i<10; i++) VFX.addParticle(this.x, this.y, '#fff', 10);
+            this.x += (dx/dist) * 100; // 100 birim atıl
+            this.y += (dy/dist) * 100;
+            for(let i=0; i<15; i++) VFX.addParticle(this.x, this.y, '#fff', 10);
         }
     }
 
@@ -270,9 +297,13 @@ class Player {
         // Karakteri çiz
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-        ctx.fillStyle = this.dashCooldown > 40 ? '#fff' : this.color; // Dash atarken beyazla
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = this.color;
+        
+        // Hasar alıyorsa kırmızıya yakın, Dash atıyorsa beyaza yakın
+        const baseColor = this.health < 40 ? '#ff0055' : this.color;
+        ctx.fillStyle = this.isDashing ? '#fff' : baseColor; 
+        
+        ctx.shadowBlur = this.isDashing ? 30 : 20;
+        ctx.shadowColor = this.isDashing ? '#fff' : baseColor;
         ctx.fill();
         ctx.shadowBlur = 0;
     }
@@ -282,40 +313,48 @@ class Enemy {
     constructor(type, wave) {
         this.type = type;
         this.active = true;
+        this.wave = wave;
         
-        // Rastgele kenardan doğ
-        if(Math.random() < 0.5) {
-            this.x = Math.random() < 0.5 ? -50 : window.innerWidth + 50;
-            this.y = Math.random() * window.innerHeight;
-        } else {
+        // Rastgele kenardan doğ (Aşırı profesyonel spawn)
+        const side = Math.floor(Math.random() * 4); // 0: Üst, 1: Alt, 2: Sol, 3: Sağ
+        if (side === 0) { // Üst
             this.x = Math.random() * window.innerWidth;
-            this.y = Math.random() < 0.5 ? -50 : window.innerHeight + 50;
+            this.y = -50;
+        } else if (side === 1) { // Alt
+            this.x = Math.random() * window.innerWidth;
+            this.y = window.innerHeight + 50;
+        } else if (side === 2) { // Sol
+            this.x = -50;
+            this.y = Math.random() * window.innerHeight;
+        } else { // Sağ
+            this.x = window.innerWidth + 50;
+            this.y = Math.random() * window.innerHeight;
         }
 
         // Tipe göre özellikler
-        const difficultyMult = 1 + (wave * 0.05); // Her level %5 daha zor
+        const difficultyMult = 1 + (wave * 0.08); // Level arttıkça %8 zorlaşır (AGRESİF ZORLUK)
         
-        if(type === 'drone') { // Hızlı, düz
-            this.speed = 6 * difficultyMult;
+        if(type === 'drone') { // Hızlı, düz rota (Drone: Sarı)
+            this.speed = 4 * difficultyMult;
             this.radius = 10;
             this.color = '#ffaa00';
             this.hp = 1;
-            // Hedefi doğduğu anda kilitler
+            // Hedefi doğduğu anda kilitler (Aptal füze)
             const angle = Math.atan2(Game.player.y - this.y, Game.player.x - this.x);
             this.vx = Math.cos(angle) * this.speed;
             this.vy = Math.sin(angle) * this.speed;
-        } else if (type === 'heavy') { // Yavaş, büyük
+        } else if (type === 'heavy') { // Yavaş, büyük, çok HP (Heavy: Kırmızı)
             this.speed = 1.5 * difficultyMult;
             this.radius = 30;
             this.color = '#ff0000';
             this.hp = 5;
-        } else if (type === 'boss') { // BOSS
-            this.speed = 2;
+        } else if (type === 'boss') { // BOSS (Beyaz)
+            this.speed = 1 + (wave * 0.01);
             this.radius = 60;
             this.color = '#fff';
-            this.hp = 20 + wave;
+            this.hp = 20 + (wave * 2);
             this.isBoss = true;
-        } else { // Seeker (Normal)
+        } else { // Seeker (Normal, Takipçi: Magenta)
             this.speed = 3 * difficultyMult;
             this.radius = 15;
             this.color = '#ff0055';
@@ -328,7 +367,7 @@ class Enemy {
             this.x += this.vx;
             this.y += this.vy;
         } else {
-            // Oyuncuyu takip et
+            // Oyuncuyu takip et (Hassas takip)
             const dx = player.x - this.x;
             const dy = player.y - this.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
@@ -337,20 +376,33 @@ class Enemy {
         }
 
         // Ekrandan çok uzaklaşırsa silinebilir (Optimizasyon)
-        if(this.x < -100 || this.x > window.innerWidth+100 || this.y < -100 || this.y > window.innerHeight+100) {
+        if(this.x < -1000 || this.x > window.innerWidth+1000 || this.y < -1000 || this.y > window.innerHeight+1000) {
             this.active = false;
         }
     }
 
     draw(ctx) {
         ctx.beginPath();
-        if(this.type === 'boss') {
+        if(this.isBoss) {
             // Boss efekti
-            ctx.arc(this.x, this.y, this.radius + Math.sin(Date.now()*0.01)*5, 0, Math.PI*2);
+            const pulse = 6 * (this.hp / 200);
+            ctx.arc(this.x, this.y, this.radius + Math.sin(Date.now()*0.01)*pulse, 0, Math.PI*2);
             ctx.strokeStyle = this.color;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 5;
             ctx.stroke();
+            // Boss HP'sini göster
+            ctx.font = '12px Orbitron';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.fillText(`HP: ${Math.max(0, Math.floor(this.hp))}`, this.x, this.y - this.radius - 10);
+
+        } else if (this.type === 'heavy') {
+            // Ağır düşman dörtgen
+             ctx.rect(this.x - this.radius, this.y - this.radius, this.radius*2, this.radius*2);
+             ctx.fillStyle = this.color;
+             ctx.fill();
         } else {
+            // Diğerleri çember
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
             ctx.fillStyle = this.color;
             ctx.fill();
@@ -364,11 +416,10 @@ const Game = {
     ctx: document.getElementById('gameCanvas').getContext('2d'),
     player: null,
     enemies: [],
-    state: 'menu', // menu, playing, gameover
+    state: 'menu', 
     wave: 1,
     score: 0,
     waveTimer: 0,
-    zoneIndex: 0,
     
     init: function() {
         AudioEngine.init();
@@ -391,7 +442,7 @@ const Game = {
         document.getElementById('hud').style.display = 'flex';
         
         this.checkZone();
-        AudioEngine.sfx.wave(); // Başlangıç sesi
+        AudioEngine.sfx.wave();
         
         requestAnimationFrame(() => this.loop());
     },
@@ -401,26 +452,38 @@ const Game = {
     },
 
     checkZone: function() {
-        // Mevcut dalgaya göre bölgeyi belirle
         let currentZone = Zones[0];
         for(let z of Zones) {
             if(this.wave >= z.start) currentZone = z;
         }
         
-        // Zone değiştiyse veya başlangıçsa başlığı göster
+        // Başlığı göster
         const titleEl = document.getElementById('zoneTitle');
         titleEl.textContent = `${currentZone.name} - WAVE ${this.wave}`;
         titleEl.style.color = currentZone.color;
         titleEl.style.opacity = 1;
-        setTimeout(() => titleEl.style.opacity = 0, 3000); // 3 saniye sonra gizle
+        setTimeout(() => titleEl.style.opacity = 0, 3000);
+    },
+    
+    // YENİ: DÜŞMAN ÖLDÜRME KONTROLÜ
+    checkEnemiesStatus: function() {
+        this.enemies.forEach((enemy, index) => {
+            if (enemy.hp <= 0 && enemy.active) {
+                enemy.active = false;
+                this.score += enemy.isBoss ? 5000 : 100; // Boss daha çok puan
+                AudioEngine.sfx.collect();
+                VFX.shake(8);
+                for(let i=0; i<30; i++) VFX.addParticle(enemy.x, enemy.y, enemy.color, 8);
+            }
+        });
+        this.enemies = this.enemies.filter(e => e.active); // Ölü düşmanları diziden çıkar
     },
 
     spawnLogic: function() {
-        // Dalga mantığı (100 Level Script)
         this.waveTimer++;
         
-        // Level atlama (Her 1000 karede bir, yaklaşık 15-20 sn)
-        if(this.waveTimer > 1000) {
+        // Level atlama (Her 1200 karede bir, yaklaşık 20 sn)
+        if(this.waveTimer > 1200) {
             this.wave++;
             this.waveTimer = 0;
             this.checkZone();
@@ -434,15 +497,13 @@ const Game = {
             }
         }
 
-        // Düşman üretme sıklığı (Level arttıkça hızlanır)
-        // Level 1: 60 karede bir, Level 100: 10 karede bir
-        const spawnRate = Math.max(10, 60 - (this.wave * 0.5));
+        // Düşman üretme sıklığı
+        const spawnRate = Math.max(10, 60 - (this.wave * 0.7)); // Daha agresif zorluk
         
         if(this.waveTimer % Math.floor(spawnRate) === 0) {
-            // Hangi düşman tipinin geleceğine karar ver
             let zone = Zones.find(z => this.wave >= z.start && this.wave <= z.end) || Zones[Zones.length-1];
             let types = zone.enemyTypes;
-            if(types[0] === 'all') types = ['seeker', 'drone', 'heavy', 'crawler'];
+            if(types[0] === 'all') types = ['seeker', 'drone', 'heavy']; // crawler yerine heavy
             
             let type = types[Math.floor(Math.random() * types.length)];
             this.enemies.push(new Enemy(type, this.wave));
@@ -452,7 +513,7 @@ const Game = {
     loop: function() {
         if(this.state !== 'playing') return;
 
-        // 1. Ekranı Temizle (Hafif iz bırakarak neon efekti yaratır)
+        // 1. Ekranı Temizle
         this.ctx.fillStyle = 'rgba(5, 5, 5, 0.3)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
@@ -466,13 +527,9 @@ const Game = {
 
         // 4. Düşmanlar & Mantık
         this.spawnLogic();
+        this.checkEnemiesStatus(); // Ölüleri temizle
 
-        this.enemies.forEach((enemy, index) => {
-            if(!enemy.active) {
-                this.enemies.splice(index, 1);
-                return;
-            }
-
+        this.enemies.forEach(enemy => {
             enemy.update(this.player);
             enemy.draw(this.ctx);
 
@@ -482,18 +539,24 @@ const Game = {
             const dist = Math.sqrt(dx*dx + dy*dy);
 
             if(dist < this.player.radius + enemy.radius) {
-                // Hasar
-                if(this.player.dashCooldown > 40) { // Dash atıyorsa düşmanı öldür
-                    enemy.active = false;
-                    this.score += 100;
-                    AudioEngine.sfx.hit();
-                    VFX.shake(5);
-                    for(let i=0; i<5; i++) VFX.addParticle(enemy.x, enemy.y, enemy.color, 5);
+                if(this.player.isDashing) { 
+                    // Dash atıyorsa hasar verme
+                    enemy.hp -= 1; 
+                    VFX.shake(2);
+                    AudioEngine.sfx.dash(); 
                 } else {
+                    // Normal çarpışma: Hasar ve patlama
                     this.player.health -= 20;
-                    VFX.shake(20);
+                    VFX.shake(25);
                     AudioEngine.sfx.hit();
-                    enemy.active = false; // Çarpınca düşman patlar
+                    
+                    // Normal düşmanlar çarpınca patlar, Boss'lar değil
+                    if (!enemy.isBoss) {
+                        enemy.hp = 0; // Bir vuruşta ölür
+                    } else {
+                        // Boss'a sadece 1 hasar
+                        enemy.hp -= 1;
+                    }
                     
                     if(this.player.health <= 0) {
                         this.gameOver();
@@ -506,10 +569,14 @@ const Game = {
 
         // 5. UI Güncelle
         this.score += 1;
-        document.getElementById('scoreVal').textContent = this.score;
+        document.getElementById('scoreVal').textContent = Math.floor(this.score);
         document.getElementById('waveVal').textContent = this.wave;
         document.getElementById('healthVal').textContent = this.player.health + "%";
-        document.getElementById('healthVal').style.color = this.player.health < 40 ? 'red' : '#00ff00';
+        
+        // Can rengi
+        const healthEl = document.getElementById('healthVal');
+        healthEl.style.color = this.player.health > 70 ? '#00ff00' : 
+                               this.player.health > 40 ? '#ffaa00' : '#ff0055';
 
         requestAnimationFrame(() => this.loop());
     },
@@ -522,40 +589,32 @@ const Game = {
     }
 };
 
-// --- GİRİŞ KONTROLLERİ ---
-// Mouse & Touch
+// --- GİRİŞ KONTROLLERİ (PC ODAKLI) ---
+const keyStates = {}; // Basılı tuşları takip et
+
 function handleInput(x, y) {
     if(Game.player) {
-        Game.player.targetX = x;
-        Game.player.targetY = y;
+        // Fare koordinatlarını Canvas'ın içinde düzelt
+        const rect = Game.canvas.getBoundingClientRect();
+        Game.player.targetX = x - rect.left;
+        Game.player.targetY = y - rect.top;
     }
 }
-
-// Çift tıklama (Dash) için
-let lastTap = 0;
-
-window.addEventListener('touchstart', e => {
-    e.preventDefault();
-    const now = Date.now();
-    if (now - lastTap < 300) {
-        if(Game.player) Game.player.dash();
-    }
-    lastTap = now;
-    handleInput(e.touches[0].clientX, e.touches[0].clientY);
-}, {passive: false});
-
-window.addEventListener('touchmove', e => {
-    e.preventDefault();
-    handleInput(e.touches[0].clientX, e.touches[0].clientY);
-}, {passive: false});
 
 window.addEventListener('mousemove', e => {
     handleInput(e.clientX, e.clientY);
 });
 
-// Klavye (Space = Dash)
+// Klavye (WASD ve Ok Tuşları ile Dash ve Yönlendirme)
 window.addEventListener('keydown', e => {
+    keyStates[e.code] = true;
     if(e.code === 'Space' && Game.player) Game.player.dash();
+    Game.player.keys = keyStates;
+});
+
+window.addEventListener('keyup', e => {
+    keyStates[e.code] = false;
+    Game.player.keys = keyStates;
 });
 
 // Resize
