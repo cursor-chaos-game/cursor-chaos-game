@@ -2,728 +2,568 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#667eea">
-    <title>Chaos Runner - Premium Mobile Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CHAOS RUNNER: ASCENSION</title>
     <style>
-        /* ... (stil aynı, uzunluk yüzünden kısaltılmadı - orijinali kullan) ... */
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); touch-action: none; }
-        #gameCanvas { display: block; background: rgba(0, 0, 0, 0.3); box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); }
-        .screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; z-index: 200; overflow-y: auto; padding: 20px; }
-        .screen h1 { font-size: clamp(36px, 8vw, 72px); margin-bottom: 20px; background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f7b731); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradientShift 3s ease infinite; text-align: center; }
-        @keyframes gradientShift { 0%, 100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(360deg); } }
-        .subtitle { font-size: clamp(14px, 2.5vw, 20px); margin-bottom: 25px; color: #aaa; text-align: center; }
-        .info-box { background: rgba(255, 255, 255, 0.1); padding: 15px 25px; margin: 8px 0; border-radius: 12px; backdrop-filter: blur(10px); font-size: clamp(14px, 2.5vw, 18px); max-width: 90%; text-align: center; }
-        button { margin: 10px; padding: 15px 40px; font-size: clamp(16px, 3.5vw, 24px); font-weight: bold; color: white; background: linear-gradient(45deg, #ff6b6b, #ee5a6f); border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4); transition: all 0.3s ease; text-transform: uppercase; min-width: 180px; }
-        button:active { transform: scale(0.95); }
-        button.secondary { background: linear-gradient(45deg, #4ecdc4, #45b7d1); box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4); }
-        button.success { background: linear-gradient(45deg, #2ecc71, #27ae60); box-shadow: 0 8px 25px rgba(46, 204, 113, 0.4); }
-        button.premium { background: linear-gradient(45deg, #f7b731, #f39c12); box-shadow: 0 8px 25px rgba(247, 183, 49, 0.6); animation: premiumGlow 2s ease-in-out infinite; }
-        @keyframes premiumGlow { 0%, 100% { box-shadow: 0 8px 25px rgba(247, 183, 49, 0.6); } 50% { box-shadow: 0 8px 35px rgba(247, 183, 49, 0.9); } }
-        .button-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-        #ui { position: fixed; top: 10px; left: 10px; color: white; font-size: clamp(16px, 3vw, 24px); text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); z-index: 100; user-select: none; }
-        #score { font-size: clamp(24px, 5vw, 36px); font-weight: bold; color: #ffd700; }
-        .wave-indicator { position: fixed; top: 10px; right: 10px; font-size: clamp(18px, 4vw, 28px); color: white; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); padding: 12px 20px; background: rgba(0, 0, 0, 0.6); border-radius: 15px; backdrop-filter: blur(10px); }
-        #pauseBtn, #musicBtn { position: fixed; width: 50px; height: 50px; min-width: unset; padding: 10px; font-size: 24px; z-index: 101; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        #pauseBtn { top: 10px; right: 10px; }
-        #musicBtn { top: 70px; right: 10px; }
-        .shop-item { background: rgba(255, 255, 255, 0.1); padding: 20px; margin: 10px; border-radius: 15px; border: 3px solid rgba(255, 255, 255, 0.3); width: 280px; text-align: center; transition: all 0.3s ease; }
-        .shop-item.premium-item { border-color: #f7b731; background: linear-gradient(135deg, rgba(247, 183, 49, 0.2), rgba(243, 156, 18, 0.2)); box-shadow: 0 0 20px rgba(247, 183, 49, 0.3); }
-        .shop-item-icon { font-size: 64px; margin-bottom: 15px; filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5)); }
-        .shop-items-grid { display: flex; flex-wrap: wrap; justify-content: center; max-width: 95%; max-height: 65vh; overflow-y: auto; }
-        .skin-preview { width: 80px; height: 80px; margin: 10px auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 48px; border: 3px solid rgba(255, 255, 255, 0.3); background: rgba(0, 0, 0, 0.3); }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab { padding: 12px 24px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 25px; cursor: pointer; transition: all 0.3s; }
-        .tab.active { background: linear-gradient(45deg, #4ecdc4, #45b7d1); border-color: #4ecdc4; }
-        .leaderboard-item { background: rgba(255, 255, 255, 0.1); padding: 15px 20px; margin: 8px 0; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; width: 90%; max-width: 500px; }
-        .settings-option { background: rgba(255, 255, 255, 0.1); padding: 20px; margin: 10px 0; border-radius: 12px; width: 90%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; }
-        .toggle-switch { width: 60px; height: 30px; background: #555; border-radius: 15px; position: relative; cursor: pointer; transition: all 0.3s; }
-        .toggle-switch.active { background: #2ecc71; }
-        .toggle-switch::after { content: ''; position: absolute; width: 26px; height: 26px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: all 0.3s; }
-        .toggle-switch.active::after { left: 32px; }
-        @media (max-width: 768px) { .shop-item { width: 90%; } }
-        .watermark { position: fixed; bottom: 5px; right: 5px; font-size: 8px; color: rgba(255, 255, 255, 0.1); pointer-events: none; user-select: none; z-index: 9999; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #050505; overflow: hidden; font-family: 'Orbitron', sans-serif; touch-action: none; }
+
+        /* ARAYÜZ KATMANLARI */
+        #gameCanvas { display: block; width: 100%; height: 100%; }
+        
+        .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; }
+        
+        /* HUD (Oyun İçi Göstergeler) */
+        #hud { padding: 20px; display: none; justify-content: space-between; align-items: flex-start; }
+        .stat-block { text-align: center; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
+        .stat-value { font-size: 24px; font-weight: 900; color: #fff; display: block; }
+        .stat-label { font-size: 10px; color: #888; letter-spacing: 2px; }
+        
+        /* BÖLGE İSMİ (Sinematik) */
+        #zoneTitle {
+            position: absolute; top: 30%; width: 100%; text-align: center;
+            font-size: clamp(30px, 8vw, 60px); font-weight: 900;
+            background: linear-gradient(to bottom, #fff, #888); -webkit-background-clip: text; color: transparent;
+            opacity: 0; transition: opacity 2s; text-shadow: 0 0 30px rgba(255,255,255,0.2);
+            z-index: 10;
+        }
+
+        /* ANA MENÜ */
+        #menuScreen {
+            position: absolute; width: 100%; height: 100%;
+            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            pointer-events: auto; z-index: 20;
+        }
+
+        h1 {
+            font-size: clamp(40px, 10vw, 80px); text-align: center;
+            background: linear-gradient(90deg, #ff0055, #00ffff); -webkit-background-clip: text; color: transparent;
+            text-shadow: 0 0 20px rgba(255,0,85,0.5); margin-bottom: 10px;
+            animation: glitch 3s infinite;
+        }
+
+        .subtitle { color: #666; font-size: 14px; letter-spacing: 4px; margin-bottom: 40px; text-transform: uppercase; }
+
+        button {
+            background: transparent; border: 2px solid #00ffff; color: #00ffff;
+            padding: 15px 50px; font-size: 18px; font-family: 'Orbitron', sans-serif; font-weight: bold;
+            cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+            transition: all 0.2s; box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+        }
+        button:active { transform: scale(0.95); background: rgba(0,255,255,0.2); }
+
+        /* GAME OVER */
+        #gameOverScreen {
+            display: none; position: absolute; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 30;
+            flex-direction: column; justify-content: center; align-items: center; pointer-events: auto;
+        }
+        .death-msg { color: #ff0055; font-size: 40px; margin-bottom: 20px; text-shadow: 0 0 20px #ff0055; }
+
+        /* EFEKTLER */
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            2% { transform: translate(-2px, 2px); }
+            4% { transform: translate(2px, -2px); }
+            6% { transform: translate(0); }
+            100% { transform: translate(0); }
+        }
+
+        #vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 40%, black 120%);
+            pointer-events: none; z-index: 5;
+        }
+        
+        #scanline {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px; pointer-events: none; z-index: 6; opacity: 0.3;
+        }
     </style>
 </head>
 <body>
-    <!-- (HTML ekranları: aynen korunuyor) -->
-    <div id="startScreen" class="screen">
-        <h1>🎮 CHAOS RUNNER</h1>
-        <div class="subtitle">Karanlıktan Kaç, Işığı Bul</div>
-        <div class="info-box">💎 <span id="mainMenuCrystals">0</span> Kristal</div>
-        <div class="button-row">
-            <button onclick="startGame()">🎮 OYNA</button>
-            <button class="secondary" onclick="openShop()">🛒 MAĞAZA</button>
-        </div>
-        <div class="button-row">
-            <button class="secondary" onclick="openLeaderboard()">🏆 LIDERLER</button>
-            <button class="secondary" onclick="openSettings()">⚙️ AYARLAR</button>
-        </div>
-        <div class="info-box" style="margin-top: 20px;">
-            <div>🏆 En Yüksek Dalga: <span id="highestWave">1</span></div>
-            <div>💰 Toplam Kazanç: <span id="totalCrystals">0</span></div>
-            <div style="margin-top: 10px; font-size: 14px; color: #888;">Kostüm: <span id="currentSkinDisplay">🔵 Klasik</span></div>
-        </div>
-    </div>
 
-    <div id="shopScreen" class="screen" style="display: none;">
-        <h1>🛒 MAĞAZA</h1>
-        <div style="font-size: 24px; margin-bottom: 20px;">💎 <span id="shopCrystals">0</span> Kristal</div>
-        <div class="tabs">
-            <div class="tab active" id="tab-boosts" onclick="switchShopTab('boosts')">⚡ Güçler</div>
-            <div class="tab" id="tab-skins" onclick="switchShopTab('skins')">🎨 Kostümler</div>
-        </div>
-        <div id="boostsTab" class="shop-items-grid">
-            <!-- boost itemler aynı -->
-            <div class="shop-item"><div class="shop-item-icon">🛡️</div><div class="shop-item-name">Başlangıç Kalkanı</div><div class="shop-item-desc">Oyuna kalkan ile başla</div><div class="shop-item-price">💎 50</div><button onclick="buyItem('startShield', 50)">SATIN AL</button></div>
-            <div class="shop-item"><div class="shop-item-icon">❤️</div><div class="shop-item-name">Ekstra Can</div><div class="shop-item-desc">+1 can ile başla</div><div class="shop-item-price">💎 75</div><button onclick="buyItem('extraLife', 75)">SATIN AL</button></div>
-            <div class="shop-item"><div class="shop-item-icon">⚡</div><div class="shop-item-name">Hız Artışı</div><div class="shop-item-desc">%30 daha hızlı koş</div><div class="shop-item-price">💎 100</div><button onclick="buyItem('speedBoost', 100)">SATIN AL</button></div>
-            <div class="shop-item"><div class="shop-item-icon">🕐</div><div class="shop-item-name">Zaman Kontrolü</div><div class="shop-item-desc">İlk 10 saniye düşman yavaş</div><div class="shop-item-price">💎 80</div><button onclick="buyItem('startSlow', 80)">SATIN AL</button></div>
-            <div class="shop-item"><div class="shop-item-icon">🧲</div><div class="shop-item-name">Kristal Mıknatısı</div><div class="shop-item-desc">Otomatik toplama</div><div class="shop-item-price">💎 120</div><button onclick="buyItem('magnetBoost', 120)">SATIN AL</button></div>
-            <div class="shop-item premium-item"><div class="premium-badge">⭐ PREMIUM</div><div class="shop-item-icon">👑</div><div class="shop-item-name">VIP Paketi</div><div class="shop-item-desc">Tüm güçler + 3 premium kostüm</div><div class="shop-item-price">💎 500</div><button class="premium" onclick="buyItem('vipPack', 500)">PREMIUM AL</button></div>
-            <div class="shop-item" style="border-color: #2ecc71;"><div class="shop-item-icon">📺</div><div class="shop-item-name">Ücretsiz Kristal</div><div class="shop-item-desc">Reklam izle, 50 kristal kazan</div><div class="shop-item-price">🎁 ÜCRETSİZ</div><button class="success" onclick="watchAd('crystals')">İZLE</button></div>
-        </div>
-        <div id="skinsTab" class="shop-items-grid" style="display: none;"></div>
-        <button class="secondary" onclick="closeShop()" style="margin-top: 20px;">◀ GERİ</button>
-    </div>
-
-    <div id="leaderboardScreen" class="screen" style="display: none;">
-        <h1>🏆 LİDERLİK TABLOSU</h1>
-        <div class="subtitle">En İyi Oyuncular</div>
-        <div id="leaderboardList" style="width: 100%; display: flex; flex-direction: column; align-items: center; max-height: 60vh; overflow-y: auto;"></div>
-        <button class="secondary" onclick="closeLeaderboard()" style="margin-top: 20px;">◀ GERİ</button>
-    </div>
-
-    <div id="settingsScreen" class="screen" style="display: none;">
-        <h1>⚙️ AYARLAR</h1>
-        <div class="settings-option"><span>🔊 Müzik</span><div class="toggle-switch" id="musicToggle" onclick="toggleMusic()"></div></div>
-        <div class="settings-option"><span>🔔 Ses Efektleri</span><div class="toggle-switch active" id="soundToggle" onclick="toggleSound()"></div></div>
-        <div class="settings-option"><span>📳 Titreşim</span><div class="toggle-switch active" id="vibrationToggle" onclick="toggleVibration()"></div></div>
-        <div class="info-box" style="margin-top: 30px;">
-            <div style="font-size: 16px; margin-bottom: 15px;">📊 İSTATİSTİKLER</div>
-            <div>🎮 Toplam Oyun: <span id="totalGames">0</span></div>
-            <div>⏱️ Toplam Süre: <span id="totalTime">0</span> dk</div>
-            <div>💎 Toplam Kristal: <span id="totalCrystalsStats">0</span></div>
-        </div>
-        <button onclick="resetProgress()" style="background: linear-gradient(45deg, #e74c3c, #c0392b); margin-top: 20px;">🗑️ İLERLEMEYİ SIL</button>
-        <button class="secondary" onclick="closeSettings()" style="margin-top: 10px;">◀ GERİ</button>
-    </div>
-
-    <div id="pauseScreen" class="screen" style="display: none;">
-        <h1>⏸️ DURAKLAMA</h1>
-        <div class="info-box"><div>🌊 Dalga: <span id="pauseWave">1</span></div><div>💯 Skor: <span id="pauseScore">0</span></div></div>
-        <div class="button-row">
-            <button class="success" onclick="resumeFromPause()">▶️ DEVAM</button>
-            <button class="secondary" onclick="restartFromPause()">🔄 YENİDEN</button>
-            <button onclick="quitToMenu()">🏠 MENÜ</button>
-        </div>
-    </div>
-
-    <div id="gameOverScreen" class="screen" style="display: none;">
-        <h1>💀 OYUN BİTTİ</h1>
-        <div class="info-box">
-            <div style="font-size: 32px; color: #ffd700;">🌊 Dalga: <span id="finalWave">0</span></div>
-            <div style="font-size: 28px;">💯 Skor: <span id="finalScore">0</span></div>
-            <div style="font-size: 24px; color: #4ecdc4;">💎 Kazanılan: <span id="earnedCrystals">0</span></div>
-        </div>
-        <div class="info-box">🏆 En İyi: Dalga <span id="bestWave">1</span></div>
-        <div id="reviveOffer" class="info-box" style="background: rgba(46, 204, 113, 0.2); border: 2px solid #2ecc71;">
-            <div style="font-size: 24px; margin-bottom: 15px;">❤️ DİRİL!</div>
-            <div style="font-size: 16px; margin-bottom: 15px;">Reklam izle, devam et!</div>
-            <button class="success" onclick="watchAd('revive')">📺 REKLAM İZLE</button>
-        </div>
-        <div class="button-row">
-            <button onclick="restartGame()">🔄 TEKRAR</button>
-            <button class="secondary" onclick="backToMenu()">🏠 MENÜ</button>
-        </div>
-    </div>
-
-    <div id="adScreen" class="screen" style="display: none;">
-        <div style="background: rgba(0,0,0,0.9); padding: 40px; border-radius: 20px; text-align: center;">
-            <h1>📺 REKLAM</h1>
-            <div style="font-size: 18px; margin: 20px 0; color: #ddd;">Google AdMob reklamı gösteriliyor...</div>
-            <div style="font-size: 48px; color: #ffd700; margin: 20px 0;" id="adTimer">5</div>
-            <div style="font-size: 16px; color: #aaa;">Lütfen bekleyin</div>
-        </div>
-    </div>
-
-    <div id="ui" style="display: none;">
-        <div>💯 <span id="score">0</span></div>
-        <div style="font-size: 18px; margin-top: 5px;">❤️ <span id="health">❤️❤️❤️</span></div>
-        <div style="font-size: 16px; margin-top: 5px;">💎 <span id="gameCrystals">0</span></div>
-        <div id="shieldIndicator" style="display: none; margin-top: 5px; font-size: 16px;">🛡️ KALKAN AKTİF</div>
-    </div>
-    <div class="wave-indicator" id="waveIndicator" style="display: none;">🌊 <span id="wave">1</span></div>
-    <button id="pauseBtn" style="display: none;" onclick="pauseGame()">⏸️</button>
-    <button id="musicBtn" style="display: none;" onclick="toggleMusicInGame()">🔊</button>
     <canvas id="gameCanvas"></canvas>
-    <div class="watermark" id="watermark"></div>
+    <div id="vignette"></div>
+    <div id="scanline"></div>
 
-    <script>
-    (function () {
-        'use strict';
+    <div id="zoneTitle">NEON CITY</div>
 
-        // --- SECURE STORAGE (base64 encode) - safe wrapper
-        window.secureStorage = {
-            setItem: (key, value) => { try { localStorage.setItem(btoa(key), btoa(encodeURIComponent(String(value)))); } catch(e){} },
-            getItem: (key) => { try { const v = localStorage.getItem(btoa(key)); return v ? decodeURIComponent(atob(v)) : null; } catch(e){ return null; } }
-        };
+    <div id="hud" class="ui-layer">
+        <div class="stat-block">
+            <span class="stat-value" id="scoreVal">0</span>
+            <span class="stat-label">SKOR</span>
+        </div>
+        <div class="stat-block">
+            <span class="stat-value" id="waveVal">1</span>
+            <span class="stat-label" style="color:#ff0055">DALGA</span>
+        </div>
+        <div class="stat-block">
+            <span class="stat-value" id="healthVal">100%</span>
+            <span class="stat-label" style="color:#00ff00">DURUM</span>
+        </div>
+    </div>
 
-        // safe parse helpers
-        const safeInt = (v, d=0) => { const n = parseInt(v); return isNaN(n) ? d : n; };
-        const safeJSON = (v, d) => { try { return v ? JSON.parse(v) : d; } catch(e){ return d; } };
+    <div id="menuScreen">
+        <h1>CHAOS RUNNER</h1>
+        <div class="subtitle">Karanlıktan Kaç, Işığı Bul</div>
+        <button onclick="Game.init()">BAŞLAT</button>
+        <div style="margin-top:20px; color:#444; font-size:10px;">V3.0 FINAL CORE ENGINE</div>
+    </div>
 
-        // watermark (dev) - üretimde kaldır
-        setInterval(() => { document.getElementById('watermark').textContent = `v1.1 | ${new Date().toISOString().slice(11,19)}`; }, 1000);
+    <div id="gameOverScreen">
+        <div class="death-msg">BAĞLANTI KOPTU</div>
+        <div class="subtitle">Sistem Çöküşü: Dalga <span id="finalWave">0</span></div>
+        <button onclick="Game.restart()">YENİDEN BAĞLAN</button>
+    </div>
 
-        // --- AUDIO: ertelenmiş AudioContext oluşturma (!!! önemli)
-        let audioCtx = null;
-        function ensureAudioContext() {
-            if (audioCtx) return audioCtx;
-            try {
-                const AC = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AC();
-            } catch (e) {
-                audioCtx = null;
-            }
-            return audioCtx;
+<script>
+/**
+ * CHAOS RUNNER: CORE ENGINE v3.0
+ * 100 Bölümlük Procedural Dalga Sistemi
+ */
+
+// --- SES SİSTEMİ (Procedural Synth) ---
+const AudioEngine = {
+    ctx: null,
+    init: function() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    },
+    playTone: function(freq, type, duration, vol) {
+        if(!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    },
+    sfx: {
+        dash: () => AudioEngine.playTone(600, 'sawtooth', 0.2, 0.1),
+        hit: () => AudioEngine.playTone(100, 'square', 0.5, 0.2),
+        collect: () => AudioEngine.playTone(1200, 'sine', 0.1, 0.1),
+        wave: () => AudioEngine.playTone(50, 'sawtooth', 2.0, 0.3) // Bass drop
+    }
+};
+
+// --- GÖRSEL EFEKT SİSTEMİ ---
+const VFX = {
+    particles: [],
+    shakeTimer: 0,
+    
+    addParticle: function(x, y, color, speed) {
+        this.particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * speed,
+            vy: (Math.random() - 0.5) * speed,
+            life: 1.0,
+            color: color
+        });
+    },
+    
+    update: function(ctx) {
+        // Shake logic
+        if(this.shakeTimer > 0) {
+            const mag = this.shakeTimer;
+            ctx.translate((Math.random()-0.5)*mag, (Math.random()-0.5)*mag);
+            this.shakeTimer *= 0.9;
+            if(this.shakeTimer < 0.5) this.shakeTimer = 0;
         }
 
-        function playSound(type) {
-            if (window.secureStorage.getItem('soundEnabled') === 'false') return;
-            const ctx = ensureAudioContext();
-            if (!ctx) return;
-            if (ctx.state === 'suspended') ctx.resume();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            if (type === 'collect') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-                osc.start(); osc.stop(ctx.currentTime + 0.12);
-            } else if (type === 'hit') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-                osc.start(); osc.stop(ctx.currentTime + 0.22);
-            } else if (type === 'powerup') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(400, ctx.currentTime);
-                osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-                osc.start(); osc.stop(ctx.currentTime + 0.32);
-            }
+        // Particles
+        for(let i = this.particles.length - 1; i >= 0; i--) {
+            let p = this.particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.03;
+            
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, 3, 3);
+            ctx.globalAlpha = 1.0;
+            
+            if(p.life <= 0) this.particles.splice(i, 1);
         }
+    },
+    
+    shake: function(amount) {
+        this.shakeTimer = amount;
+    }
+};
 
-        function vibrate(ms) {
-            if (window.navigator && window.navigator.vibrate && window.secureStorage.getItem('vibrationEnabled') !== 'false') {
-                window.navigator.vibrate(ms);
-            }
+// --- OYUN KONFIGURASYONU (SENARYO) ---
+const Zones = [
+    { name: "NEON CITY", start: 1, end: 10, color: "#00ffff", enemyTypes: ['seeker'] },
+    { name: "FOUNDRY SECTOR", start: 11, end: 30, color: "#ffaa00", enemyTypes: ['seeker', 'drone'] },
+    { name: "SKYBRIDGE", start: 31, end: 60, color: "#00ff00", enemyTypes: ['seeker', 'drone', 'crawler'] },
+    { name: "ABYSSAL VAULT", start: 61, end: 90, color: "#ff0055", enemyTypes: ['seeker', 'drone', 'heavy'] },
+    { name: "FINAL CORE", start: 91, end: 100, color: "#ffffff", enemyTypes: ['all'] }
+];
+
+// --- OYUN NESNELERİ ---
+class Player {
+    constructor() {
+        this.x = window.innerWidth / 2;
+        this.y = window.innerHeight / 2;
+        this.radius = 15;
+        this.speed = 5;
+        this.color = '#00ffff';
+        this.trail = [];
+        this.dashCooldown = 0;
+        this.health = 100;
+        this.targetX = this.x;
+        this.targetY = this.y;
+    }
+    
+    update() {
+        // Hareketi yumuşat
+        this.x += (this.targetX - this.x) * 0.1;
+        this.y += (this.targetY - this.y) * 0.1;
+        
+        // Sınırlar
+        this.x = Math.max(20, Math.min(window.innerWidth-20, this.x));
+        this.y = Math.max(20, Math.min(window.innerHeight-20, this.y));
+
+        // Trail (İz) efekti
+        this.trail.push({x: this.x, y: this.y, alpha: 0.8});
+        if(this.trail.length > 10) this.trail.shift();
+        
+        // Cooldown
+        if(this.dashCooldown > 0) this.dashCooldown--;
+    }
+
+    dash() {
+        if(this.dashCooldown > 0) return;
+        this.dashCooldown = 60; // 1 saniye
+        VFX.shake(10);
+        AudioEngine.sfx.dash();
+        
+        // İleri atılma mantığı
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist > 0) {
+            this.x += (dx/dist) * 150;
+            this.y += (dy/dist) * 150;
+            // Dash sırasında partikül saç
+            for(let i=0; i<10; i++) VFX.addParticle(this.x, this.y, '#fff', 10);
         }
+    }
 
-        // --- Müzik jeneratörü (basit) ---
-        class MusicGenerator {
-            constructor() { this.playing = false; this._timeout = null; }
-            start() { if (this.playing) return; this.playing = true; this._tick(); }
-            stop() { this.playing = false; if (this._timeout) { clearTimeout(this._timeout); this._timeout = null; } }
-            toggle() { this.playing ? this.stop() : this.start(); return this.playing; }
-            _tick() {
-                if (!this.playing) return;
-                const ctx = ensureAudioContext();
-                if (ctx && ctx.state === 'suspended') ctx.resume();
-                if (ctx) {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    const notes = [261.6, 293.6, 329.6, 392.0, 440.0, 523.2];
-                    osc.frequency.value = notes[Math.floor(Math.random() * notes.length)];
-                    gain.gain.value = 0.05;
-                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.5);
-                }
-                this._timeout = setTimeout(() => this._tick(), 400);
-            }
-        }
-        const musicGen = new MusicGenerator();
-
-        // --- Oyun verileri (localStorage'tan güvenli yükleme) ---
-        const SKINS = {
-            classic: {id:'classic', name:'Klasik', icon:'🔵', color:'#4ecdc4', price:0, rarity:'common'},
-            fire: {id:'fire', name:'Ateş', icon:'🔥', color:'#ff4757', price:150, rarity:'rare'},
-            shadow: {id:'shadow', name:'Gölge', icon:'🌑', color:'#2c3e50', price:200, rarity:'epic'},
-            gold: {id:'gold', name:'Altın', icon:'👑', color:'#ffd700', price:500, rarity:'legendary'}
-        };
-
-        let canvas = document.getElementById('gameCanvas');
-        let ctx = canvas.getContext('2d');
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        // load persisted values safely
-        let crystals = safeInt(window.secureStorage.getItem('crystals'), 0);
-        let totalCrystalsEarned = safeInt(window.secureStorage.getItem('totalCrystals'), 0);
-        let highestWave = safeInt(window.secureStorage.getItem('highestWave'), 1);
-        let currentSkin = window.secureStorage.getItem('currentSkin') || 'classic';
-        let ownedSkins = safeJSON(window.secureStorage.getItem('ownedSkins'), ['classic']);
-        let musicEnabled = window.secureStorage.getItem('musicEnabled') !== 'false';
-        let soundEnabled = window.secureStorage.getItem('soundEnabled') !== 'false';
-        let vibrationEnabled = window.secureStorage.getItem('vibrationEnabled') !== 'false';
-        // purchasedBoosts persisted
-        let purchasedBoosts = safeJSON(window.secureStorage.getItem('purchasedBoosts'), { startShield:false, extraLife:false, speedBoost:false, startSlow:false, magnetBoost:false });
-
-        // oyun durum
-        let gameState = 'menu';
-        let score = 0, health = 3, wave = 1, gameCrystals = 0;
-        let player = { x:0, y:0, radius:20, color:'#4ecdc4', speed:6, targetX:0, targetY:0 };
-        let enemies = [], stars = [], particles = [];
-        let hasShield = false, magnetActive = false;
-
-        // input
-        let keys = {};
-        document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
-        document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-
-        // mouse + touch unified (first interaction also ensures AudioContext)
-        function pointerSetTarget(x,y) {
-            player.targetX = x;
-            player.targetY = y;
-        }
-        canvas.addEventListener('touchstart', e => { e.preventDefault(); ensureAudioContext(); pointerSetTarget(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
-        canvas.addEventListener('touchmove', e => { e.preventDefault(); pointerSetTarget(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
-        canvas.addEventListener('mousedown', e => { ensureAudioContext(); pointerSetTarget(e.clientX, e.clientY); });
-        canvas.addEventListener('mousemove', e => { if (e.buttons) pointerSetTarget(e.clientX, e.clientY); });
-
-        // UI güncelleme
-        function updateMainMenuUI() {
-            document.getElementById('mainMenuCrystals').textContent = crystals;
-            document.getElementById('highestWave').textContent = highestWave;
-            document.getElementById('totalCrystals').textContent = totalCrystalsEarned;
-            document.getElementById('currentSkinDisplay').textContent = SKINS[currentSkin]?.name || 'Klasik';
-        }
-
-        // mağaza
-        function openShop() { document.getElementById('startScreen').style.display='none'; document.getElementById('shopScreen').style.display='flex'; document.getElementById('shopCrystals').textContent = crystals; }
-        function closeShop() { document.getElementById('shopScreen').style.display='none'; document.getElementById('startScreen').style.display='flex'; updateMainMenuUI(); }
-        function switchShopTab(tab) {
-            document.getElementById('boostsTab').style.display = tab === 'boosts' ? 'flex' : 'none';
-            document.getElementById('skinsTab').style.display = tab === 'skins' ? 'flex' : 'none';
-            document.getElementById('tab-boosts').classList.toggle('active', tab === 'boosts');
-            document.getElementById('tab-skins').classList.toggle('active', tab === 'skins');
-            if(tab === 'skins') renderSkins();
-        }
-        function renderSkins() {
-            const div = document.getElementById('skinsTab'); div.innerHTML = '';
-            Object.values(SKINS).forEach(skin => {
-                const owned = ownedSkins.includes(skin.id);
-                const priceText = owned ? (currentSkin===skin.id ? 'GİYİLİ' : 'SAHİP') : '💎 '+skin.price;
-                const btn = !owned ? `<button onclick="buySkin('${skin.id}', ${skin.price})">AL</button>` :
-                    (currentSkin!==skin.id ? `<button class="success" onclick="equipSkin('${skin.id}')">GİY</button>` : '');
-                div.innerHTML += `
-                <div class="shop-item" style="border-color:${skin.color}">
-                    <div style="font-size:40px">${skin.icon}</div>
-                    <div>${skin.name}</div>
-                    <div>${priceText}</div>
-                    ${btn}
-                </div>`;
-            });
-        }
-        function persistPurchasedBoosts() { window.secureStorage.setItem('purchasedBoosts', JSON.stringify(purchasedBoosts)); }
-
-        function buyItem(type, cost) {
-            if (type === 'vipPack') {
-                if (crystals < cost) { alert('Yetersiz Kristal'); return; }
-                crystals -= cost;
-                // VIP: grant all boosts + skins
-                purchasedBoosts.startShield = true;
-                purchasedBoosts.extraLife = true;
-                purchasedBoosts.speedBoost = true;
-                purchasedBoosts.startSlow = true;
-                purchasedBoosts.magnetBoost = true;
-                ownedSkins = Array.from(new Set(ownedSkins.concat(['fire','shadow','gold'])));
-                window.secureStorage.setItem('ownedSkins', JSON.stringify(ownedSkins));
-            } else {
-                if (crystals < cost) { alert('Yetersiz Kristal'); return; }
-                crystals -= cost;
-                purchasedBoosts[type] = true;
-            }
-            persistPurchasedBoosts();
-            window.secureStorage.setItem('crystals', crystals);
-            alert('Satın Alındı!');
-            openShop();
-        }
-        function buySkin(id, cost) {
-            if(crystals < cost) { alert('Yetersiz Kristal'); return; }
-            crystals -= cost;
-            ownedSkins.push(id);
-            ownedSkins = Array.from(new Set(ownedSkins));
-            window.secureStorage.setItem('crystals', crystals);
-            window.secureStorage.setItem('ownedSkins', JSON.stringify(ownedSkins));
-            renderSkins();
-        }
-        function equipSkin(id) {
-            currentSkin = id;
-            window.secureStorage.setItem('currentSkin', id);
-            renderSkins();
-        }
-
-        // --- Oyun döngüsü ---
-        function startGame() {
-            gameState = 'playing';
-            score = 0;
-            health = purchasedBoosts.extraLife ? 4 : 3;
-            // boost'ları kullandıktan sonra temizle (persist)
-            purchasedBoosts.extraLife = false;
-
-            wave = 1;
-            gameCrystals = 0;
-            hasShield = purchasedBoosts.startShield;
-            purchasedBoosts.startShield = false;
-            magnetActive = purchasedBoosts.magnetBoost;
-            purchasedBoosts.magnetBoost = false;
-
-            // speedBoost etki etsin
-            if (purchasedBoosts.speedBoost) {
-                player.speed = 8;
-                purchasedBoosts.speedBoost = false;
-            } else player.speed = 6;
-
-            persistPurchasedBoosts();
-
-            player.x = canvas.width/2; player.y = canvas.height/2;
-            player.targetX = player.x; player.targetY = player.y;
-            player.color = SKINS[currentSkin]?.color || '#4ecdc4';
-
-            enemies = []; stars = []; particles = [];
-
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('ui').style.display = 'block';
-            document.getElementById('gameCanvas').style.display = 'block';
-            updateShieldIndicator();
-
-            if (musicEnabled) musicGen.start();
-            spawnWave();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function spawnWave() {
-            document.getElementById('wave').textContent = wave;
-            document.getElementById('waveIndicator').style.display = 'block';
-            setTimeout(() => document.getElementById('waveIndicator').style.display='none', 2000);
-
-            for(let i=0; i<3+wave; i++) {
-                enemies.push({
-                    x: Math.random() < 0.5 ? -50 : canvas.width+50,
-                    y: Math.random()*canvas.height,
-                    speed: 2 + (wave*0.2),
-                    radius: 15,
-                    color: '#ff4757'
-                });
-            }
-            for(let i=0; i<5; i++) createStar();
-        }
-
-        function createStar() {
-            stars.push({
-                x: Math.random()*(canvas.width-100)+50,
-                y: Math.random()*(canvas.height-100)+50,
-                radius: 10
-            });
-        }
-
-        function checkCollision(o1, o2) {
-            const dx = o1.x - o2.x;
-            const dy = o1.y - o2.y;
-            return Math.sqrt(dx*dx + dy*dy) < (o1.radius + o2.radius);
-        }
-
-        function updateShieldIndicator() {
-            const el = document.getElementById('shieldIndicator');
-            if (hasShield) { el.style.display = 'block'; } else { el.style.display = 'none'; }
-        }
-
-        // oyun döngüsü (güvenli splice: ters döngü)
-        function gameLoop() {
-            if (gameState !== 'playing') return;
-
-            // temizleme (motion trail efekti)
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.fillRect(0,0, canvas.width, canvas.height);
-
-            // oyuncu hareketi
-            const dx = player.targetX - player.x;
-            const dy = player.targetY - player.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if(dist > 5) {
-                player.x += (dx/dist) * player.speed;
-                player.y += (dy/dist) * player.speed;
-            }
-
-            // klavye hareketi - hedefi kaydır
-            if(keys['arrowup'] || keys['w']) player.targetY -= 10;
-            if(keys['arrowdown'] || keys['s']) player.targetY += 10;
-            if(keys['arrowleft'] || keys['a']) player.targetX -= 10;
-            if(keys['arrowright'] || keys['d']) player.targetX += 10;
-
-            // sınırlar
-            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
-            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
-
-            // oyuncu çiz
+    draw(ctx) {
+        // İzi çiz
+        this.trail.forEach(t => {
             ctx.beginPath();
-            ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
-            ctx.fillStyle = player.color;
-            ctx.shadowBlur = 20; ctx.shadowColor = player.color;
+            ctx.arc(t.x, t.y, this.radius * 0.8, 0, Math.PI*2);
+            ctx.fillStyle = `rgba(0, 255, 255, ${t.alpha * 0.3})`;
             ctx.fill();
-            if(hasShield) {
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-            }
-            ctx.shadowBlur = 0;
-
-            // yıldızlar - ters döngü ile splice güvenli
-            for (let i = stars.length - 1; i >= 0; i--) {
-                const star = stars[i];
-                if (magnetActive) {
-                    const sdx = player.x - star.x;
-                    const sdy = player.y - star.y;
-                    star.x += sdx * 0.05;
-                    star.y += sdy * 0.05;
-                }
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, star.radius, 0, Math.PI*2);
-                ctx.fillStyle = '#ffd700';
-                ctx.fill();
-
-                if(checkCollision(player, star)) {
-                    stars.splice(i, 1);
-                    score += 10;
-                    gameCrystals++;
-                    if (soundEnabled) playSound('collect');
-                    createStar();
-                    document.getElementById('score').textContent = score;
-                    document.getElementById('gameCrystals').textContent = gameCrystals;
-
-                    if(score % 100 === 0) {
-                        wave++;
-                        spawnWave();
-                        if (soundEnabled) playSound('powerup');
-                    }
-                }
-            }
-
-            // düşmanlar - ters döngü
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                const enemy = enemies[i];
-                const angle = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-                enemy.x += Math.cos(angle) * enemy.speed;
-                enemy.y += Math.sin(angle) * enemy.speed;
-
-                ctx.beginPath();
-                ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI*2);
-                ctx.fillStyle = enemy.color;
-                ctx.fill();
-
-                if(checkCollision(player, enemy)) {
-                    if(hasShield) {
-                        hasShield = false;
-                        updateShieldIndicator();
-                        enemies.splice(i, 1);
-                        if (soundEnabled) playSound('hit');
-                        vibrate(50);
-                    } else {
-                        health--;
-                        enemies.splice(i, 1);
-                        if (soundEnabled) playSound('hit');
-                        vibrate(200);
-                        document.getElementById('health').textContent = '❤️'.repeat(Math.max(0, health));
-                        if(health <= 0) {
-                            gameOver();
-                        }
-                    }
-                }
-            }
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        function gameOver() {
-            gameState = 'gameover';
-            crystals += gameCrystals;
-            totalCrystalsEarned += gameCrystals;
-            if(wave > highestWave) highestWave = wave;
-
-            window.secureStorage.setItem('crystals', crystals);
-            window.secureStorage.setItem('totalCrystals', totalCrystalsEarned);
-            window.secureStorage.setItem('highestWave', highestWave);
-            window.secureStorage.setItem('ownedSkins', JSON.stringify(ownedSkins));
-
-            document.getElementById('ui').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'flex';
-            document.getElementById('finalScore').textContent = score;
-            document.getElementById('finalWave').textContent = wave;
-            document.getElementById('earnedCrystals').textContent = gameCrystals;
-            document.getElementById('bestWave').textContent = highestWave;
-            musicGen.stop();
-            updateMainMenuUI();
-        }
-
-        // basit reklam/watchAd simülasyonu
-        function watchAd(type) {
-            document.getElementById('adTimer').textContent = '5';
-            document.getElementById('adScreen').style.display = 'flex';
-            let t = 5;
-            const iv = setInterval(() => {
-                t--;
-                document.getElementById('adTimer').textContent = t;
-                if (t <= 0) {
-                    clearInterval(iv);
-                    document.getElementById('adScreen').style.display = 'none';
-                    if (type === 'revive') {
-                        // revive: oyun durumunu tekrar oynanır hale getir
-                        revivePlayer();
-                    } else if (type === 'crystals') {
-                        crystals += 50;
-                        window.secureStorage.setItem('crystals', crystals);
-                        alert('50 kristal kazandın!');
-                        openShop();
-                    }
-                }
-            }, 1000);
-        }
-
-        function revivePlayer() {
-            if (gameState !== 'gameover') return;
-            gameState = 'playing';
-            // oyuncuyu hafifçe canlandır
-            health = 1;
-            // position reset veya aynı pozisyondan devam et: burada merkezden devam ettir
-            player.x = canvas.width/2; player.y = canvas.height/2;
-            player.targetX = player.x; player.targetY = player.y;
-            document.getElementById('gameOverScreen').style.display = 'none';
-            document.getElementById('ui').style.display = 'block';
-            requestAnimationFrame(gameLoop);
-        }
-
-        function resumeGame() { // alternatif kullanım: doğrudan devam et (gameOver revive haric)
-            if (gameState === 'paused') {
-                gameState = 'playing';
-                document.getElementById('pauseScreen').style.display = 'none';
-                requestAnimationFrame(gameLoop);
-            }
-        }
-
-        function restartGame() { startGame(); }
-        function backToMenu() { document.getElementById('gameOverScreen').style.display='none'; document.getElementById('startScreen').style.display='flex'; updateMainMenuUI(); }
-
-        // --- Eksik UI fonksiyonları eklendi ---
-        function openLeaderboard() {
-            document.getElementById('startScreen').style.display='none';
-            document.getElementById('leaderboardScreen').style.display='flex';
-            // örnek liste (local olarak)
-            const lb = JSON.parse(window.secureStorage.getItem('leaderboard') || '[]');
-            const list = document.getElementById('leaderboardList');
-            list.innerHTML = '';
-            if (lb.length === 0) {
-                list.innerHTML = '<div class="info-box">Henüz liderlik verisi yok.</div>';
-            } else {
-                lb.sort((a,b) => b.score - a.score).slice(0,50).forEach(item => {
-                    const el = document.createElement('div');
-                    el.className = 'leaderboard-item';
-                    el.innerHTML = `<div>${item.name || 'Anonim'}</div><div>${item.score}</div>`;
-                    list.appendChild(el);
-                });
-            }
-        }
-        function closeLeaderboard() { document.getElementById('leaderboardScreen').style.display='none'; document.getElementById('startScreen').style.display='flex'; }
-
-        function openSettings() {
-            document.getElementById('startScreen').style.display='none';
-            document.getElementById('settingsScreen').style.display='flex';
-            // toggle görünümlerini güncelle
-            document.getElementById('musicToggle').classList.toggle('active', musicEnabled);
-            document.getElementById('soundToggle').classList.toggle('active', soundEnabled);
-            document.getElementById('vibrationToggle').classList.toggle('active', vibrationEnabled);
-            document.getElementById('totalGames').textContent = window.secureStorage.getItem('totalGames') || '0';
-            document.getElementById('totalTime').textContent = window.secureStorage.getItem('totalTime') || '0';
-            document.getElementById('totalCrystalsStats').textContent = totalCrystalsEarned || '0';
-        }
-        function closeSettings() { document.getElementById('settingsScreen').style.display='none'; document.getElementById('startScreen').style.display='flex'; }
-
-        function resetProgress() {
-            if (!confirm('İlerlemeni sıfırlamak istediğine emin misin?')) return;
-            window.secureStorage.setItem('crystals', 0);
-            window.secureStorage.setItem('totalCrystals', 0);
-            window.secureStorage.setItem('highestWave', 1);
-            window.secureStorage.setItem('ownedSkins', JSON.stringify(['classic']));
-            window.secureStorage.setItem('purchasedBoosts', JSON.stringify({ startShield:false, extraLife:false, speedBoost:false, startSlow:false, magnetBoost:false }));
-            // yenile
-            crystals = 0; totalCrystalsEarned = 0; highestWave = 1; ownedSkins = ['classic']; purchasedBoosts = { startShield:false, extraLife:false, speedBoost:false, startSlow:false, magnetBoost:false };
-            updateMainMenuUI();
-            alert('İlerleme sıfırlandı.');
-        }
-
-        function pauseGame() {
-            if (gameState === 'playing') {
-                gameState = 'paused';
-                document.getElementById('pauseWave').textContent = wave;
-                document.getElementById('pauseScore').textContent = score;
-                document.getElementById('pauseScreen').style.display = 'flex';
-                musicGen.stop();
-            }
-        }
-        function resumeFromPause() {
-            if (gameState === 'paused') {
-                gameState = 'playing';
-                document.getElementById('pauseScreen').style.display = 'none';
-                if (musicEnabled) musicGen.start();
-                requestAnimationFrame(gameLoop);
-            }
-        }
-        function restartFromPause() { document.getElementById('pauseScreen').style.display='none'; startGame(); }
-        function quitToMenu() { document.getElementById('pauseScreen').style.display='none'; document.getElementById('ui').style.display='none'; document.getElementById('startScreen').style.display='flex'; gameState='menu'; musicGen.stop(); }
-
-        // ayarlar toggle fonksiyonları
-        function toggleMusic() { musicEnabled = !musicEnabled; window.secureStorage.setItem('musicEnabled', musicEnabled); document.getElementById('musicToggle').classList.toggle('active', musicEnabled); if (musicEnabled) musicGen.start(); else musicGen.stop(); }
-        function toggleSound() { soundEnabled = !soundEnabled; window.secureStorage.setItem('soundEnabled', soundEnabled); document.getElementById('soundToggle').classList.toggle('active', soundEnabled); }
-        function toggleVibration() { vibrationEnabled = !vibrationEnabled; window.secureStorage.setItem('vibrationEnabled', vibrationEnabled); document.getElementById('vibrationToggle').classList.toggle('active', vibrationEnabled); }
-
-        function toggleMusicInGame() { toggleMusic(); }
-
-        // yardımcılar
-        updateMainMenuUI();
-        updateShieldIndicator();
-
-        // sayfa ilk tıklamada AudioContext oluştur ve kullanıcı etkileşimi gerektiğinde tetikle
-        ['touchstart','mousedown','keydown'].forEach(evt => {
-            window.addEventListener(evt, function f(e) {
-                ensureAudioContext();
-                window.removeEventListener(evt, f);
-            }, {passive:true});
         });
 
-        // window unload persistence minimal
-        window.addEventListener('beforeunload', () => {
-            window.secureStorage.setItem('crystals', crystals);
-            window.secureStorage.setItem('totalCrystals', totalCrystalsEarned);
-            window.secureStorage.setItem('highestWave', highestWave);
-            window.secureStorage.setItem('ownedSkins', JSON.stringify(ownedSkins));
-            window.secureStorage.setItem('purchasedBoosts', JSON.stringify(purchasedBoosts));
+        // Karakteri çiz
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+        ctx.fillStyle = this.dashCooldown > 40 ? '#fff' : this.color; // Dash atarken beyazla
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+}
+
+class Enemy {
+    constructor(type, wave) {
+        this.type = type;
+        this.active = true;
+        
+        // Rastgele kenardan doğ
+        if(Math.random() < 0.5) {
+            this.x = Math.random() < 0.5 ? -50 : window.innerWidth + 50;
+            this.y = Math.random() * window.innerHeight;
+        } else {
+            this.x = Math.random() * window.innerWidth;
+            this.y = Math.random() < 0.5 ? -50 : window.innerHeight + 50;
+        }
+
+        // Tipe göre özellikler
+        const difficultyMult = 1 + (wave * 0.05); // Her level %5 daha zor
+        
+        if(type === 'drone') { // Hızlı, düz
+            this.speed = 6 * difficultyMult;
+            this.radius = 10;
+            this.color = '#ffaa00';
+            this.hp = 1;
+            // Hedefi doğduğu anda kilitler
+            const angle = Math.atan2(Game.player.y - this.y, Game.player.x - this.x);
+            this.vx = Math.cos(angle) * this.speed;
+            this.vy = Math.sin(angle) * this.speed;
+        } else if (type === 'heavy') { // Yavaş, büyük
+            this.speed = 1.5 * difficultyMult;
+            this.radius = 30;
+            this.color = '#ff0000';
+            this.hp = 5;
+        } else if (type === 'boss') { // BOSS
+            this.speed = 2;
+            this.radius = 60;
+            this.color = '#fff';
+            this.hp = 20 + wave;
+            this.isBoss = true;
+        } else { // Seeker (Normal)
+            this.speed = 3 * difficultyMult;
+            this.radius = 15;
+            this.color = '#ff0055';
+            this.hp = 1;
+        }
+    }
+
+    update(player) {
+        if(this.type === 'drone') {
+            this.x += this.vx;
+            this.y += this.vy;
+        } else {
+            // Oyuncuyu takip et
+            const dx = player.x - this.x;
+            const dy = player.y - this.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            this.x += (dx/dist) * this.speed;
+            this.y += (dy/dist) * this.speed;
+        }
+
+        // Ekrandan çok uzaklaşırsa silinebilir (Optimizasyon)
+        if(this.x < -100 || this.x > window.innerWidth+100 || this.y < -100 || this.y > window.innerHeight+100) {
+            this.active = false;
+        }
+    }
+
+    draw(ctx) {
+        ctx.beginPath();
+        if(this.type === 'boss') {
+            // Boss efekti
+            ctx.arc(this.x, this.y, this.radius + Math.sin(Date.now()*0.01)*5, 0, Math.PI*2);
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        } else {
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+    }
+}
+
+// --- ANA OYUN DÖNGÜSÜ ---
+const Game = {
+    canvas: document.getElementById('gameCanvas'),
+    ctx: document.getElementById('gameCanvas').getContext('2d'),
+    player: null,
+    enemies: [],
+    state: 'menu', // menu, playing, gameover
+    wave: 1,
+    score: 0,
+    waveTimer: 0,
+    zoneIndex: 0,
+    
+    init: function() {
+        AudioEngine.init();
+        
+        // Canvas Boyutlandırma
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        
+        // Oyunu Başlat
+        this.player = new Player();
+        this.enemies = [];
+        this.wave = 1;
+        this.score = 0;
+        this.waveTimer = 0;
+        this.state = 'playing';
+        this.player.health = 100;
+        
+        document.getElementById('menuScreen').style.display = 'none';
+        document.getElementById('gameOverScreen').style.display = 'none';
+        document.getElementById('hud').style.display = 'flex';
+        
+        this.checkZone();
+        AudioEngine.sfx.wave(); // Başlangıç sesi
+        
+        requestAnimationFrame(() => this.loop());
+    },
+
+    restart: function() {
+        this.init();
+    },
+
+    checkZone: function() {
+        // Mevcut dalgaya göre bölgeyi belirle
+        let currentZone = Zones[0];
+        for(let z of Zones) {
+            if(this.wave >= z.start) currentZone = z;
+        }
+        
+        // Zone değiştiyse veya başlangıçsa başlığı göster
+        const titleEl = document.getElementById('zoneTitle');
+        titleEl.textContent = `${currentZone.name} - WAVE ${this.wave}`;
+        titleEl.style.color = currentZone.color;
+        titleEl.style.opacity = 1;
+        setTimeout(() => titleEl.style.opacity = 0, 3000); // 3 saniye sonra gizle
+    },
+
+    spawnLogic: function() {
+        // Dalga mantığı (100 Level Script)
+        this.waveTimer++;
+        
+        // Level atlama (Her 1000 karede bir, yaklaşık 15-20 sn)
+        if(this.waveTimer > 1000) {
+            this.wave++;
+            this.waveTimer = 0;
+            this.checkZone();
+            AudioEngine.sfx.wave();
+            this.score += 1000;
+            
+            // BOSS SPAWN (Her 10 levelde bir)
+            if(this.wave % 10 === 0) {
+                this.enemies.push(new Enemy('boss', this.wave));
+                VFX.shake(20);
+            }
+        }
+
+        // Düşman üretme sıklığı (Level arttıkça hızlanır)
+        // Level 1: 60 karede bir, Level 100: 10 karede bir
+        const spawnRate = Math.max(10, 60 - (this.wave * 0.5));
+        
+        if(this.waveTimer % Math.floor(spawnRate) === 0) {
+            // Hangi düşman tipinin geleceğine karar ver
+            let zone = Zones.find(z => this.wave >= z.start && this.wave <= z.end) || Zones[Zones.length-1];
+            let types = zone.enemyTypes;
+            if(types[0] === 'all') types = ['seeker', 'drone', 'heavy', 'crawler'];
+            
+            let type = types[Math.floor(Math.random() * types.length)];
+            this.enemies.push(new Enemy(type, this.wave));
+        }
+    },
+
+    loop: function() {
+        if(this.state !== 'playing') return;
+
+        // 1. Ekranı Temizle (Hafif iz bırakarak neon efekti yaratır)
+        this.ctx.fillStyle = 'rgba(5, 5, 5, 0.3)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 2. VFX Update
+        this.ctx.save();
+        VFX.update(this.ctx);
+
+        // 3. Oyuncu
+        this.player.update();
+        this.player.draw(this.ctx);
+
+        // 4. Düşmanlar & Mantık
+        this.spawnLogic();
+
+        this.enemies.forEach((enemy, index) => {
+            if(!enemy.active) {
+                this.enemies.splice(index, 1);
+                return;
+            }
+
+            enemy.update(this.player);
+            enemy.draw(this.ctx);
+
+            // Çarpışma
+            const dx = this.player.x - enemy.x;
+            const dy = this.player.y - enemy.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+
+            if(dist < this.player.radius + enemy.radius) {
+                // Hasar
+                if(this.player.dashCooldown > 40) { // Dash atıyorsa düşmanı öldür
+                    enemy.active = false;
+                    this.score += 100;
+                    AudioEngine.sfx.hit();
+                    VFX.shake(5);
+                    for(let i=0; i<5; i++) VFX.addParticle(enemy.x, enemy.y, enemy.color, 5);
+                } else {
+                    this.player.health -= 20;
+                    VFX.shake(20);
+                    AudioEngine.sfx.hit();
+                    enemy.active = false; // Çarpınca düşman patlar
+                    
+                    if(this.player.health <= 0) {
+                        this.gameOver();
+                    }
+                }
+            }
         });
 
-    })();
-    </script>
+        this.ctx.restore();
+
+        // 5. UI Güncelle
+        this.score += 1;
+        document.getElementById('scoreVal').textContent = this.score;
+        document.getElementById('waveVal').textContent = this.wave;
+        document.getElementById('healthVal').textContent = this.player.health + "%";
+        document.getElementById('healthVal').style.color = this.player.health < 40 ? 'red' : '#00ff00';
+
+        requestAnimationFrame(() => this.loop());
+    },
+
+    gameOver: function() {
+        this.state = 'gameover';
+        document.getElementById('finalWave').textContent = this.wave;
+        document.getElementById('hud').style.display = 'none';
+        document.getElementById('gameOverScreen').style.display = 'flex';
+    }
+};
+
+// --- GİRİŞ KONTROLLERİ ---
+// Mouse & Touch
+function handleInput(x, y) {
+    if(Game.player) {
+        Game.player.targetX = x;
+        Game.player.targetY = y;
+    }
+}
+
+// Çift tıklama (Dash) için
+let lastTap = 0;
+
+window.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastTap < 300) {
+        if(Game.player) Game.player.dash();
+    }
+    lastTap = now;
+    handleInput(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive: false});
+
+window.addEventListener('touchmove', e => {
+    e.preventDefault();
+    handleInput(e.touches[0].clientX, e.touches[0].clientY);
+}, {passive: false});
+
+window.addEventListener('mousemove', e => {
+    handleInput(e.clientX, e.clientY);
+});
+
+// Klavye (Space = Dash)
+window.addEventListener('keydown', e => {
+    if(e.code === 'Space' && Game.player) Game.player.dash();
+});
+
+// Resize
+window.addEventListener('resize', () => {
+    Game.canvas.width = window.innerWidth;
+    Game.canvas.height = window.innerHeight;
+});
+
+</script>
 </body>
 </html>
-
