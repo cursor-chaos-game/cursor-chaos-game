@@ -2,15 +2,15 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CHAOS RUNNER: PC CORE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHAOS RUNNER: ASCENSION V4.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body { background-color: #050505; overflow: hidden; font-family: 'Orbitron', sans-serif; cursor: none; } /* PC için cursor gizlendi */
+        body { background-color: #050505; overflow: hidden; font-family: 'Orbitron', sans-serif; cursor: none; } 
 
-        /* ARAYÜZ VE EKRAN */
+        /* GÖRSEL KATMANLAR */
         #gameCanvas { display: block; width: 100%; height: 100%; }
         .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; }
         
@@ -19,24 +19,15 @@
         .stat-block { text-align: center; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
         .stat-value { font-size: 24px; font-weight: 900; display: block; }
         .stat-label { font-size: 10px; color: #888; letter-spacing: 2px; }
-        
-        /* BÖLGE İSMİ (Sinematik) */
-        #zoneTitle {
-            position: absolute; top: 30%; width: 100%; text-align: center;
-            font-size: clamp(30px, 8vw, 60px); font-weight: 900;
-            background: linear-gradient(to bottom, #fff, #888); -webkit-background-clip: text; color: transparent;
-            opacity: 0; transition: opacity 2s; text-shadow: 0 0 30px rgba(255,255,255,0.2);
-            z-index: 10;
-        }
 
         /* MENÜ */
-        #menuScreen {
+        #menuScreen, #gameOverScreen {
             position: absolute; width: 100%; height: 100%;
             background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             pointer-events: auto; z-index: 20;
         }
-
+        
         h1 {
             font-size: clamp(40px, 10vw, 80px); text-align: center;
             background: linear-gradient(90deg, #ff0055, #00ffff); -webkit-background-clip: text; color: transparent;
@@ -44,45 +35,18 @@
             animation: glitch 3s infinite;
         }
 
-        .subtitle { color: #666; font-size: 14px; letter-spacing: 4px; margin-bottom: 40px; text-transform: uppercase; }
-
         button {
             background: transparent; border: 2px solid #00ffff; color: #00ffff;
             padding: 15px 50px; font-size: 18px; font-family: 'Orbitron', sans-serif; font-weight: bold;
             cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
             transition: all 0.2s; box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
         }
-        button:hover { background: rgba(0,255,255,0.1); } /* PC Hover Eklendi */
+        button:hover { background: rgba(0,255,255,0.1); }
         button:active { transform: scale(0.95); background: rgba(0,255,255,0.2); }
-
-        /* GAME OVER */
-        #gameOverScreen {
-            display: none; position: absolute; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 30;
-            flex-direction: column; justify-content: center; align-items: center; pointer-events: auto;
-        }
-        .death-msg { color: #ff0055; font-size: 40px; margin-bottom: 20px; text-shadow: 0 0 20px #ff0055; }
-
-        /* EFEKTLER */
-        @keyframes glitch {
-            0% { transform: translate(0); }
-            2% { transform: translate(-2px, 2px); }
-            4% { transform: translate(2px, -2px); }
-            6% { transform: translate(0); }
-            100% { transform: translate(0); }
-        }
-
-        #vignette {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, transparent 40%, black 120%);
-            pointer-events: none; z-index: 5;
-        }
         
-        #scanline {
-            position: fixed; top:0; left:0; width:100%; height:100%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
-            background-size: 100% 4px; pointer-events: none; z-index: 6; opacity: 0.3;
-        }
+        /* Gelişmiş CSS efektleri */
+        #zoneTitle { opacity: 0; transition: opacity 2s; }
+        #vignette { background: radial-gradient(circle, transparent 40%, black 120%); }
     </style>
 </head>
 <body>
@@ -91,7 +55,7 @@
     <div id="vignette"></div>
     <div id="scanline"></div>
 
-    <div id="zoneTitle">NEON CITY</div>
+    <div id="zoneTitle"></div>
 
     <div id="hud" class="ui-layer">
         <div class="stat-block">
@@ -106,36 +70,33 @@
             <span class="stat-value" id="healthVal">100%</span>
             <span class="stat-label" style="color:#00ff00">DURUM</span>
         </div>
+        <div class="stat-block" style="position: absolute; bottom: 20px; right: 20px;">
+            <span class="stat-value" id="ammoVal">∞</span>
+            <span class="stat-label" style="color:#00ffff">MÜHİMMAT</span>
+        </div>
     </div>
 
     <div id="menuScreen">
-        <h1>CHAOS RUNNER</h1>
-        <div class="subtitle">Karanlıktan Kaç, Işığı Bul</div>
-        <button onclick="Game.init()">BAŞLAT</button>
-        <div style="margin-top:20px; color:#444; font-size:10px;">V3.1 PC CORE ENGINE</div>
+        <h1>CHAOS RUNNER: ASCENSION</h1>
+        <div class="subtitle">Mouse ile Hareketi Kontrol Et, Sol Tık ile Ateş Et, Sağ Tık ile Atıl</div>
+        <button onclick="Game.init()">SİSTEMİ BAŞLAT</button>
+        <div style="margin-top:20px; color:#444; font-size:10px;">V4.0 PC FINAL CORE ENGINE</div>
     </div>
 
-    <div id="gameOverScreen">
+    <div id="gameOverScreen" style="display:none;">
         <div class="death-msg">BAĞLANTI KOPTU</div>
-        <div class="subtitle">Sistem Çöküşü: Dalga <span id="finalWave">0</span></div>
+        <div class="subtitle">Kalan Dalga: <span id="finalWave">0</span> | Nihai Skor: <span id="finalScore">0</span></div>
         <button onclick="Game.restart()">YENİDEN BAĞLAN</button>
     </div>
 
 <script>
-/**
- * CHAOS RUNNER: PC CORE ENGINE v3.1
- * Klavye ve Fare Kontrolü için Güncellendi
- */
+// --- CORE TOOLS ---
 
-// --- SES SİSTEMİ (Procedural Synth) ---
 const AudioEngine = {
     ctx: null,
     init: function() {
-        // Tarayıcıdaki ses iznini almak için
         document.addEventListener('click', () => {
-            if (!this.ctx) {
-                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            }
+            if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         }, { once: true });
     },
     playTone: function(freq, type, duration, vol) {
@@ -145,7 +106,7 @@ const AudioEngine = {
         osc.type = type;
         osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
         gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start();
@@ -154,30 +115,32 @@ const AudioEngine = {
     sfx: {
         dash: () => AudioEngine.playTone(600, 'sawtooth', 0.2, 0.1),
         hit: () => AudioEngine.playTone(100, 'square', 0.5, 0.2),
+        shoot: () => AudioEngine.playTone(800, 'sine', 0.05, 0.08),
         collect: () => AudioEngine.playTone(1200, 'sine', 0.1, 0.1),
         wave: () => AudioEngine.playTone(50, 'sawtooth', 2.0, 0.3)
     }
 };
 
-// --- GÖRSEL EFEKT SİSTEMİ ---
 const VFX = {
     particles: [],
     shakeTimer: 0,
     
-    addParticle: function(x, y, color, speed) {
-        this.particles.push({
-            x: x, y: y,
-            vx: (Math.random() - 0.5) * speed,
-            vy: (Math.random() - 0.5) * speed,
-            life: 1.0,
-            color: color
-        });
+    addParticle: function(x, y, color, speed, count=10) {
+        for(let i=0; i<count; i++) {
+            this.particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * speed,
+                vy: (Math.random() - 0.5) * speed,
+                life: 1.0,
+                color: color
+            });
+        }
     },
     
     update: function(ctx) {
         // Shake logic
         if(this.shakeTimer > 0) {
-            const mag = this.shakeTimer * 0.5; // Daha az shake PC'de
+            const mag = this.shakeTimer * 0.5;
             ctx.translate((Math.random()-0.5)*mag, (Math.random()-0.5)*mag);
             this.shakeTimer *= 0.9;
             if(this.shakeTimer < 0.5) this.shakeTimer = 0;
@@ -204,16 +167,18 @@ const VFX = {
     }
 };
 
-// --- OYUN KONFIGURASYONU (SENARYO) ---
+// --- DATA CONFIGURATION (Kusursuz Zorluk Eğrisi) ---
+
 const Zones = [
     { name: "NEON CITY", start: 1, end: 10, color: "#00ffff", enemyTypes: ['seeker'] },
     { name: "FOUNDRY SECTOR", start: 11, end: 30, color: "#ffaa00", enemyTypes: ['seeker', 'drone'] },
-    { name: "SKYBRIDGE", start: 31, end: 60, color: "#00ff00", enemyTypes: ['seeker', 'drone', 'crawler'] },
-    { name: "ABYSSAL VAULT", start: 61, end: 90, color: "#ff0055", enemyTypes: ['seeker', 'drone', 'heavy'] },
+    { name: "SKYBRIDGE", start: 31, end: 60, color: "#00ff00", enemyTypes: ['seeker', 'drone', 'heavy'] },
+    { name: "ABYSSAL VAULT", start: 61, end: 90, color: "#ff0055", enemyTypes: ['seeker', 'drone', 'heavy', 'turret'] },
     { name: "FINAL CORE", start: 91, end: 100, color: "#ffffff", enemyTypes: ['all'] }
 ];
 
-// --- OYUN NESNELERİ ---
+// --- GAME OBJECTS ---
+
 class Player {
     constructor() {
         this.x = window.innerWidth / 2;
@@ -221,16 +186,17 @@ class Player {
         this.radius = 15;
         this.color = '#00ffff';
         this.trail = [];
-        this.dashCooldown = 0;
+        this.dashCooldown = 0; // Cooldown: 60 frame
+        this.fireCooldown = 0; // Cooldown: 10 frame
         this.health = 100;
         this.targetX = this.x;
         this.targetY = this.y;
         this.isDashing = false;
-        this.keys = {}; // Klavye durumu
+        this.keys = {}; // WASD durumu
     }
     
     update() {
-        // Klavye Hareket Hedefi Hesaplama (WASD)
+        // Klavye Hareket Hedefi (WASD)
         let moveX = 0;
         let moveY = 0;
         if (this.keys['KeyW'] || this.keys['ArrowUp']) moveY -= 1;
@@ -239,49 +205,61 @@ class Player {
         if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX += 1;
 
         if (moveX !== 0 || moveY !== 0) {
-            // Klavye ile hareket ederken, fareyi de dahil et (Hybrid Kontrol)
-            this.targetX = this.x + moveX * 20; // 20: Hız çarpanı
+            // Klavye ile hedefi güncelle (Fareyi de dahil et)
+            this.targetX = this.x + moveX * 20; 
             this.targetY = this.y + moveY * 20;
         }
 
         // Hareketi yumuşat
-        this.x += (this.targetX - this.x) * 0.1;
-        this.y += (this.targetY - this.y) * 0.1;
+        this.x += (this.targetX - this.x) * 0.15; // Daha hızlı tepki
+        this.y += (this.targetY - this.y) * 0.15;
         
         // Sınırlar
         this.x = Math.max(20, Math.min(window.innerWidth-20, this.x));
         this.y = Math.max(20, Math.min(window.innerHeight-20, this.y));
 
-        // Trail (İz) efekti
+        // Cooldown
+        if(this.dashCooldown > 0) this.dashCooldown--;
+        if(this.fireCooldown > 0) this.fireCooldown--;
+        this.isDashing = this.dashCooldown > 40;
+
+        // Trail
         this.trail.push({x: this.x, y: this.y, alpha: 0.8});
         if(this.trail.length > 10) this.trail.shift();
-        
-        // Cooldown ve Dash Durumu
-        if(this.dashCooldown > 0) {
-            this.dashCooldown--;
-            this.isDashing = this.dashCooldown > 40;
-        } else {
-            this.isDashing = false;
-        }
     }
 
+    // SAĞ TIK: DASH
     dash() {
         if(this.dashCooldown > 0) return;
-        this.dashCooldown = 60; // 1 saniye Dash Cooldown
+        this.dashCooldown = 60;
         this.isDashing = true;
         VFX.shake(10);
         AudioEngine.sfx.dash();
         
-        // Atılma mantığı (Hedefe veya hareket yönüne atıl)
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
 
-        // Atılma mesafesi ve partikül saçma
         if(dist > 0) {
-            this.x += (dx/dist) * 100; // 100 birim atıl
-            this.y += (dy/dist) * 100;
-            for(let i=0; i<15; i++) VFX.addParticle(this.x, this.y, '#fff', 10);
+            this.x += (dx/dist) * 150; // Daha uzun atılma
+            this.y += (dy/dist) * 150;
+            VFX.addParticle(this.x, this.y, '#fff', 10, 15);
+        }
+    }
+    
+    // SOL TIK: ATEŞ ETME
+    shoot() {
+        if(this.fireCooldown > 0) return;
+        this.fireCooldown = 10; // Hızlı atış
+        AudioEngine.sfx.shoot();
+        
+        // Fare'nin gösterdiği yöne ateş et
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist > 0) {
+            Game.shots.push(new Shot(this.x, this.y, dx / dist, dy / dist));
         }
     }
 
@@ -298,12 +276,44 @@ class Player {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
         
-        // Hasar alıyorsa kırmızıya yakın, Dash atıyorsa beyaza yakın
         const baseColor = this.health < 40 ? '#ff0055' : this.color;
         ctx.fillStyle = this.isDashing ? '#fff' : baseColor; 
         
         ctx.shadowBlur = this.isDashing ? 30 : 20;
         ctx.shadowColor = this.isDashing ? '#fff' : baseColor;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+}
+
+class Shot {
+    constructor(x, y, vx, vy) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx * 25; // Hızlı mermi
+        this.vy = vy * 25;
+        this.radius = 4;
+        this.color = '#ff0055';
+        this.active = true;
+        this.damage = 1;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        
+        // Ekran dışına çıkınca sil
+        if(this.x < 0 || this.x > window.innerWidth || this.y < 0 || this.y > window.innerHeight) {
+            this.active = false;
+        }
+    }
+
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
         ctx.fill();
         ctx.shadowBlur = 0;
     }
@@ -315,98 +325,99 @@ class Enemy {
         this.active = true;
         this.wave = wave;
         
-        // Rastgele kenardan doğ (Aşırı profesyonel spawn)
-        const side = Math.floor(Math.random() * 4); // 0: Üst, 1: Alt, 2: Sol, 3: Sağ
-        if (side === 0) { // Üst
-            this.x = Math.random() * window.innerWidth;
-            this.y = -50;
-        } else if (side === 1) { // Alt
-            this.x = Math.random() * window.innerWidth;
-            this.y = window.innerHeight + 50;
-        } else if (side === 2) { // Sol
-            this.x = -50;
-            this.y = Math.random() * window.innerHeight;
-        } else { // Sağ
-            this.x = window.innerWidth + 50;
-            this.y = Math.random() * window.innerHeight;
-        }
+        // Rastgele kenardan doğ (4 yönlü spawn)
+        const side = Math.floor(Math.random() * 4);
+        if (side === 0) { this.x = Math.random() * window.innerWidth; this.y = -50; }
+        else if (side === 1) { this.x = Math.random() * window.innerWidth; this.y = window.innerHeight + 50; }
+        else if (side === 2) { this.x = -50; this.y = Math.random() * window.innerHeight; }
+        else { this.x = window.innerWidth + 50; this.y = Math.random() * window.innerHeight; }
 
         // Tipe göre özellikler
-        const difficultyMult = 1 + (wave * 0.08); // Level arttıkça %8 zorlaşır (AGRESİF ZORLUK)
+        const difficultyMult = 1 + (wave * 0.08); 
         
-        if(type === 'drone') { // Hızlı, düz rota (Drone: Sarı)
-            this.speed = 4 * difficultyMult;
-            this.radius = 10;
-            this.color = '#ffaa00';
-            this.hp = 1;
-            // Hedefi doğduğu anda kilitler (Aptal füze)
+        if(type === 'drone') { 
+            this.speed = 4 * difficultyMult; this.radius = 10; this.color = '#ffaa00'; this.hp = 1;
             const angle = Math.atan2(Game.player.y - this.y, Game.player.x - this.x);
-            this.vx = Math.cos(angle) * this.speed;
-            this.vy = Math.sin(angle) * this.speed;
-        } else if (type === 'heavy') { // Yavaş, büyük, çok HP (Heavy: Kırmızı)
-            this.speed = 1.5 * difficultyMult;
-            this.radius = 30;
-            this.color = '#ff0000';
-            this.hp = 5;
-        } else if (type === 'boss') { // BOSS (Beyaz)
-            this.speed = 1 + (wave * 0.01);
-            this.radius = 60;
-            this.color = '#fff';
-            this.hp = 20 + (wave * 2);
-            this.isBoss = true;
-        } else { // Seeker (Normal, Takipçi: Magenta)
-            this.speed = 3 * difficultyMult;
-            this.radius = 15;
-            this.color = '#ff0055';
-            this.hp = 1;
+            this.vx = Math.cos(angle) * this.speed; this.vy = Math.sin(angle) * this.speed;
+        } else if (type === 'heavy') { 
+            this.speed = 1.5 * difficultyMult; this.radius = 30; this.color = '#ff0000'; this.hp = 5;
+        } else if (type === 'turret') { 
+            this.speed = 0; this.radius = 20; this.color = '#00ff00'; this.hp = 3; this.fireTimer = 100;
+        } else if (type === 'boss') { 
+            this.speed = 1 + (wave * 0.01); this.radius = 60; this.color = '#fff'; this.hp = 20 + (wave * 2); this.isBoss = true;
+        } else { // Seeker (Normal)
+            this.speed = 3 * difficultyMult; this.radius = 15; this.color = '#00ffff'; this.hp = 1;
         }
     }
 
     update(player) {
         if(this.type === 'drone') {
-            this.x += this.vx;
-            this.y += this.vy;
+            this.x += this.vx; this.y += this.vy;
+        } else if (this.type === 'turret') {
+            // Turret hareketsiz kalır, ama ateş eder
+            this.fireTimer--;
+            if (this.fireTimer <= 0) {
+                this.shootPlayer();
+                this.fireTimer = 150; // Tekrar ateş etme süresi
+            }
         } else {
-            // Oyuncuyu takip et (Hassas takip)
+            // Oyuncuyu takip et
             const dx = player.x - this.x;
             const dy = player.y - this.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            this.x += (dx/dist) * this.speed;
-            this.y += (dy/dist) * this.speed;
+            if (dist > 0) {
+                this.x += (dx/dist) * this.speed;
+                this.y += (dy/dist) * this.speed;
+            }
         }
-
-        // Ekrandan çok uzaklaşırsa silinebilir (Optimizasyon)
-        if(this.x < -1000 || this.x > window.innerWidth+1000 || this.y < -1000 || this.y > window.innerHeight+1000) {
-            this.active = false;
+    }
+    
+    shootPlayer() {
+        const dx = Game.player.x - this.x;
+        const dy = Game.player.y - this.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if (dist > 0) {
+            // Düşman mermisi daha yavaş ve farklı renk
+            Game.enemyShots.push(new EnemyShot(this.x, this.y, dx / dist, dy / dist));
+            AudioEngine.playTone(300, 'square', 0.1, 0.05); // Turret sesi
         }
     }
 
     draw(ctx) {
         ctx.beginPath();
         if(this.isBoss) {
-            // Boss efekti
             const pulse = 6 * (this.hp / 200);
             ctx.arc(this.x, this.y, this.radius + Math.sin(Date.now()*0.01)*pulse, 0, Math.PI*2);
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = 5;
-            ctx.stroke();
-            // Boss HP'sini göster
-            ctx.font = '12px Orbitron';
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'center';
+            ctx.strokeStyle = this.color; ctx.lineWidth = 5; ctx.stroke();
+            ctx.font = '12px Orbitron'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
             ctx.fillText(`HP: ${Math.max(0, Math.floor(this.hp))}`, this.x, this.y - this.radius - 10);
-
         } else if (this.type === 'heavy') {
-            // Ağır düşman dörtgen
              ctx.rect(this.x - this.radius, this.y - this.radius, this.radius*2, this.radius*2);
-             ctx.fillStyle = this.color;
-             ctx.fill();
+             ctx.fillStyle = this.color; ctx.fill();
+        } else if (this.type === 'turret') {
+            // Turret'ı üçgen şeklinde çiz
+            ctx.moveTo(this.x, this.y - this.radius);
+            ctx.lineTo(this.x + this.radius, this.y + this.radius);
+            ctx.lineTo(this.x - this.radius, this.y + this.radius);
+            ctx.closePath();
+            ctx.fillStyle = this.color; ctx.fill();
         } else {
-            // Diğerleri çember
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
+            ctx.fillStyle = this.color; ctx.fill();
         }
+        ctx.shadowBlur = 0;
+    }
+}
+
+class EnemyShot extends Shot {
+    constructor(x, y, vx, vy) {
+        super(x, y, vx, vy);
+        this.vx = vx * 10; 
+        this.vy = vy * 10;
+        this.radius = 5;
+        this.color = '#ff0055'; // Kırmızı mermi
+        this.damage = 5;
     }
 }
 
@@ -416,6 +427,8 @@ const Game = {
     ctx: document.getElementById('gameCanvas').getContext('2d'),
     player: null,
     enemies: [],
+    shots: [], // Oyuncu mermileri
+    enemyShots: [], // Düşman mermileri
     state: 'menu', 
     wave: 1,
     score: 0,
@@ -423,14 +436,13 @@ const Game = {
     
     init: function() {
         AudioEngine.init();
-        
-        // Canvas Boyutlandırma
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
         
-        // Oyunu Başlat
         this.player = new Player();
         this.enemies = [];
+        this.shots = [];
+        this.enemyShots = [];
         this.wave = 1;
         this.score = 0;
         this.waveTimer = 0;
@@ -444,6 +456,9 @@ const Game = {
         this.checkZone();
         AudioEngine.sfx.wave();
         
+        // Sağ tıklama menüsünü engelle
+        window.oncontextmenu = (e) => { e.preventDefault(); }; 
+        
         requestAnimationFrame(() => this.loop());
     },
 
@@ -456,8 +471,6 @@ const Game = {
         for(let z of Zones) {
             if(this.wave >= z.start) currentZone = z;
         }
-        
-        // Başlığı göster
         const titleEl = document.getElementById('zoneTitle');
         titleEl.textContent = `${currentZone.name} - WAVE ${this.wave}`;
         titleEl.style.color = currentZone.color;
@@ -465,24 +478,77 @@ const Game = {
         setTimeout(() => titleEl.style.opacity = 0, 3000);
     },
     
-    // YENİ: DÜŞMAN ÖLDÜRME KONTROLÜ
-    checkEnemiesStatus: function() {
-        this.enemies.forEach((enemy, index) => {
-            if (enemy.hp <= 0 && enemy.active) {
-                enemy.active = false;
-                this.score += enemy.isBoss ? 5000 : 100; // Boss daha çok puan
-                AudioEngine.sfx.collect();
-                VFX.shake(8);
-                for(let i=0; i<30; i++) VFX.addParticle(enemy.x, enemy.y, enemy.color, 8);
+    // Mühimmat Çarpışması Kontrolü
+    checkCollisions: function() {
+        // Oyuncu Mermisi - Düşman Çarpışması
+        this.shots.forEach((shot, sIndex) => {
+            this.enemies.forEach((enemy, eIndex) => {
+                const dist = Math.sqrt((shot.x - enemy.x)**2 + (shot.y - enemy.y)**2);
+                if(dist < shot.radius + enemy.radius) {
+                    enemy.hp -= shot.damage;
+                    shot.active = false; // Mermi yok oldu
+                    VFX.addParticle(shot.x, shot.y, enemy.color, 3, 5);
+                }
+            });
+        });
+        
+        // Düşman Mermisi - Oyuncu Çarpışması
+        this.enemyShots.forEach((eShot, sIndex) => {
+            const dist = Math.sqrt((eShot.x - this.player.x)**2 + (eShot.y - this.player.y)**2);
+            if(dist < eShot.radius + this.player.radius && !this.player.isDashing) {
+                this.player.health -= eShot.damage;
+                eShot.active = false;
+                VFX.shake(15);
+                AudioEngine.sfx.hit();
+                VFX.addParticle(eShot.x, eShot.y, this.player.color, 5, 10);
+
+                if(this.player.health <= 0) this.gameOver();
             }
         });
-        this.enemies = this.enemies.filter(e => e.active); // Ölü düşmanları diziden çıkar
+        
+        // Oyuncu - Düşman Çarpışması (Dash/Normal)
+        this.enemies.forEach(enemy => {
+            const dist = Math.sqrt((this.player.x - enemy.x)**2 + (this.player.y - enemy.y)**2);
+
+            if(dist < this.player.radius + enemy.radius) {
+                if(this.player.isDashing) { 
+                    enemy.hp -= 3; // Dash ile vuruş
+                    VFX.shake(5);
+                    VFX.addParticle(enemy.x, enemy.y, '#fff', 5, 8);
+                } else {
+                    this.player.health -= 20;
+                    VFX.shake(25);
+                    AudioEngine.sfx.hit();
+                    
+                    if (!enemy.isBoss) {
+                        enemy.hp = 0; 
+                    } else {
+                        enemy.hp -= 1;
+                    }
+                    if(this.player.health <= 0) this.gameOver();
+                }
+            }
+        });
+
+        // Ölüleri ve mermileri temizle
+        this.shots = this.shots.filter(s => s.active);
+        this.enemyShots = this.enemyShots.filter(s => s.active);
+        
+        this.enemies.forEach(enemy => {
+            if (enemy.hp <= 0 && enemy.active) {
+                enemy.active = false;
+                this.score += enemy.isBoss ? 5000 : 100;
+                AudioEngine.sfx.collect();
+                VFX.shake(8);
+                VFX.addParticle(enemy.x, enemy.y, enemy.color, 8, 30);
+            }
+        });
+        this.enemies = this.enemies.filter(e => e.active);
     },
 
     spawnLogic: function() {
         this.waveTimer++;
         
-        // Level atlama (Her 1200 karede bir, yaklaşık 20 sn)
         if(this.waveTimer > 1200) {
             this.wave++;
             this.waveTimer = 0;
@@ -490,20 +556,18 @@ const Game = {
             AudioEngine.sfx.wave();
             this.score += 1000;
             
-            // BOSS SPAWN (Her 10 levelde bir)
             if(this.wave % 10 === 0) {
                 this.enemies.push(new Enemy('boss', this.wave));
                 VFX.shake(20);
             }
         }
 
-        // Düşman üretme sıklığı
-        const spawnRate = Math.max(10, 60 - (this.wave * 0.7)); // Daha agresif zorluk
+        const spawnRate = Math.max(10, 60 - (this.wave * 0.8)); // Daha agresif zorluk eğrisi
         
         if(this.waveTimer % Math.floor(spawnRate) === 0) {
             let zone = Zones.find(z => this.wave >= z.start && this.wave <= z.end) || Zones[Zones.length-1];
             let types = zone.enemyTypes;
-            if(types[0] === 'all') types = ['seeker', 'drone', 'heavy']; // crawler yerine heavy
+            if(types[0] === 'all') types = ['seeker', 'drone', 'heavy', 'turret'];
             
             let type = types[Math.floor(Math.random() * types.length)];
             this.enemies.push(new Enemy(type, this.wave));
@@ -513,57 +577,27 @@ const Game = {
     loop: function() {
         if(this.state !== 'playing') return;
 
-        // 1. Ekranı Temizle
+        // 1. Ekranı Temizle (Trail efekti)
         this.ctx.fillStyle = 'rgba(5, 5, 5, 0.3)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // 2. VFX Update
         this.ctx.save();
         VFX.update(this.ctx);
 
-        // 3. Oyuncu
+        // 2. Güncelleme Sırası: Önce Oyuncu, Sonra Mermiler, Sonra Düşmanlar
         this.player.update();
+        this.shots.forEach(shot => shot.update());
+        this.enemyShots.forEach(shot => shot.update());
+        this.enemies.forEach(enemy => enemy.update(this.player));
+
+        // 3. Çarpışma Kontrolü
+        this.checkCollisions();
+        
+        // 4. Çizim Sırası: Önce Düşmanlar, Sonra Mermiler, En Son Oyuncu
+        this.enemies.forEach(enemy => enemy.draw(this.ctx));
+        this.shots.forEach(shot => shot.draw(this.ctx));
+        this.enemyShots.forEach(shot => shot.draw(this.ctx));
         this.player.draw(this.ctx);
-
-        // 4. Düşmanlar & Mantık
-        this.spawnLogic();
-        this.checkEnemiesStatus(); // Ölüleri temizle
-
-        this.enemies.forEach(enemy => {
-            enemy.update(this.player);
-            enemy.draw(this.ctx);
-
-            // Çarpışma
-            const dx = this.player.x - enemy.x;
-            const dy = this.player.y - enemy.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-
-            if(dist < this.player.radius + enemy.radius) {
-                if(this.player.isDashing) { 
-                    // Dash atıyorsa hasar verme
-                    enemy.hp -= 1; 
-                    VFX.shake(2);
-                    AudioEngine.sfx.dash(); 
-                } else {
-                    // Normal çarpışma: Hasar ve patlama
-                    this.player.health -= 20;
-                    VFX.shake(25);
-                    AudioEngine.sfx.hit();
-                    
-                    // Normal düşmanlar çarpınca patlar, Boss'lar değil
-                    if (!enemy.isBoss) {
-                        enemy.hp = 0; // Bir vuruşta ölür
-                    } else {
-                        // Boss'a sadece 1 hasar
-                        enemy.hp -= 1;
-                    }
-                    
-                    if(this.player.health <= 0) {
-                        this.gameOver();
-                    }
-                }
-            }
-        });
 
         this.ctx.restore();
 
@@ -573,7 +607,6 @@ const Game = {
         document.getElementById('waveVal').textContent = this.wave;
         document.getElementById('healthVal').textContent = this.player.health + "%";
         
-        // Can rengi
         const healthEl = document.getElementById('healthVal');
         healthEl.style.color = this.player.health > 70 ? '#00ff00' : 
                                this.player.health > 40 ? '#ffaa00' : '#ff0055';
@@ -584,13 +617,14 @@ const Game = {
     gameOver: function() {
         this.state = 'gameover';
         document.getElementById('finalWave').textContent = this.wave;
+        document.getElementById('finalScore').textContent = Math.floor(this.score);
         document.getElementById('hud').style.display = 'none';
         document.getElementById('gameOverScreen').style.display = 'flex';
     }
 };
 
 // --- GİRİŞ KONTROLLERİ (PC ODAKLI) ---
-const keyStates = {}; // Basılı tuşları takip et
+const keyStates = {};
 
 function handleInput(x, y) {
     if(Game.player) {
@@ -601,14 +635,28 @@ function handleInput(x, y) {
     }
 }
 
+// Fare hareketleri
 window.addEventListener('mousemove', e => {
     handleInput(e.clientX, e.clientY);
 });
 
-// Klavye (WASD ve Ok Tuşları ile Dash ve Yönlendirme)
+// Sol Tık (Ateş etme)
+window.addEventListener('mousedown', e => {
+    if(Game.player && Game.state === 'playing') {
+        if (e.button === 0) { // Sol tık
+            Game.player.shoot();
+        } else if (e.button === 2) { // Sağ tık
+            Game.player.dash();
+        }
+    }
+});
+
+// Klavye (WASD ile Yönlendirme ve Space ile Dash)
 window.addEventListener('keydown', e => {
     keyStates[e.code] = true;
-    if(e.code === 'Space' && Game.player) Game.player.dash();
+    if(e.code === 'Space' && Game.player && Game.state === 'playing') {
+        Game.player.dash();
+    }
     Game.player.keys = keyStates;
 });
 
@@ -617,11 +665,14 @@ window.addEventListener('keyup', e => {
     Game.player.keys = keyStates;
 });
 
-// Resize
+// Canvas yeniden boyutlandırma
 window.addEventListener('resize', () => {
     Game.canvas.width = window.innerWidth;
     Game.canvas.height = window.innerHeight;
 });
+
+// Oyun başladığında ses sistemini init et (Tarayıcı için)
+AudioEngine.init();
 
 </script>
 </body>
