@@ -613,7 +613,9 @@
                 if (!(heightThreshold && widthThreshold) && ((window.Firebug && window.Firebug.chrome && window.Firebug.chrome.isInitialized) || widthThreshold || heightThreshold)) {
                     if (!devtools.open || devtools.orientation !== orientation) {
                         emitEvent(true, orientation);
-                        console.clear();
+                        if (console && typeof console.clear === 'function') {
+                            console.clear();
+                        }
                     }
                     devtools.open = true;
                     devtools.orientation = orientation;
